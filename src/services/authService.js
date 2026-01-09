@@ -1,101 +1,92 @@
-// Mock data para autenticación
-const mockUsers = [
-  {
-    id: '1',
-    email: 'admin@uce.edu.ec',
-    password: 'admin123',
-    name: 'Admin User',
-    role: 'admin',
-    studentId: null,
-  },
-  {
-    id: '2',
-    email: 'sarah.johnson@uce.edu.ec',
-    password: 'student123',
-    name: 'Sarah Johnson',
-    role: 'student',
-    studentId: '20234567',
-    faculty: 'Engineering',
-  },
-  {
-    id: '3',
-    email: 'david.lee@uce.edu.ec',
-    password: 'student123',
-    name: 'David Lee',
-    role: 'student',
-    studentId: '20234568',
-    faculty: 'Sciences',
-  },
-];
+import api, { userApi } from "./api";
 
-// Simular delay de red
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const saveTokens = ({ accessToken, refreshToken }) => {
+  if (accessToken) localStorage.setItem("accessToken", accessToken);
+  if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+};
+
+const clearTokens = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
+};
+
+const parseJwt = (token) => {
+  try {
+    const payload = token.split(".")[1];
+    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(b64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join("")
+    );
+    return JSON.parse(json);
+  } catch (e) {
+    return null;
+  }
+};
 
 export const authService = {
   async login(email, password) {
-    await delay(800); // Simular llamada a API
-    
-    const user = mockUsers.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (!user) {
-      throw new Error('Invalid email or password');
+    const resp = await api.post("/auth/login", { email, password });
+    const { accessToken, refreshToken } = resp.data || {};
+    if (!accessToken) throw new Error("Invalid login response");
+    saveTokens({ accessToken, refreshToken });
+    // Get profile from user service
+    try {
+      const profileResp = await userApi.get("/users/me");
+      const user = profileResp.data;
+      localStorage.setItem("user", JSON.stringify(user));
+      return { accessToken, refreshToken, user };
+    } catch (err) {
+      const payload = parseJwt(accessToken);
+      const user = payload ? { email: payload.sub || payload.email } : null;
+      if (user) localStorage.setItem("user", JSON.stringify(user));
+      return { accessToken, refreshToken, user };
     }
-
-    const { password: _, ...userWithoutPassword } = user;
-    const token = `mock_token_${user.id}_${Date.now()}`;
-
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-
-    return {
-      token,
-      user: userWithoutPassword,
-    };
   },
 
-  async register(userData) {
-    await delay(1000);
-
-    const existingUser = mockUsers.find((u) => u.email === userData.email);
-    if (existingUser) {
-      throw new Error('Email already registered');
+  async oauthLogin() {
+    // Try to obtain tokens from server endpoint (called after oauth flow)
+    const resp = await api.post("/auth/oauth2/login");
+    const { accessToken, refreshToken } = resp.data || {};
+    if (!accessToken) throw new Error("OAuth2 login failed");
+    saveTokens({ accessToken, refreshToken });
+    try {
+      const profileResp = await userApi.get("/users/me");
+      const user = profileResp.data;
+      localStorage.setItem("user", JSON.stringify(user));
+      return { accessToken, refreshToken, user };
+    } catch (err) {
+      const payload = parseJwt(accessToken);
+      const user = payload ? { email: payload.sub || payload.email } : null;
+      if (user) localStorage.setItem("user", JSON.stringify(user));
+      return { accessToken, refreshToken, user };
     }
-
-    const newUser = {
-      id: String(mockUsers.length + 1),
-      ...userData,
-      role: 'student',
-    };
-
-    mockUsers.push(newUser);
-
-    const { password: _, ...userWithoutPassword } = newUser;
-    const token = `mock_token_${newUser.id}_${Date.now()}`;
-
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-
-    return {
-      token,
-      user: userWithoutPassword,
-    };
   },
 
-  async logout() {
-    await delay(300);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  async refresh() {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) throw new Error("No refresh token");
+    const resp = await api.post("/auth/refresh", { refreshToken });
+    const { accessToken, refreshToken: newRefresh } = resp.data || {};
+    saveTokens({ accessToken, refreshToken: newRefresh });
+    return { accessToken, refreshToken: newRefresh };
+  },
+
+  logout() {
+    clearTokens();
   },
 
   getCurrentUser() {
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem("user");
     return userStr ? JSON.parse(userStr) : null;
   },
 
   isAuthenticated() {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem("accessToken");
   },
 };
-
