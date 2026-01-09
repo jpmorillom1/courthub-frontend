@@ -1,20 +1,26 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { Layout } from './components/Layout';
-import { ProtectedRoute } from './components/common/ProtectedRoute';
-import { Login } from './components/auth/Login';
-import { Register } from './components/auth/Register';
-import { Dashboard } from './components/dashboard/Dashboard';
-import { MasterSchedule } from './components/schedule/MasterSchedule';
-import { BookingFlow } from './components/booking/BookingFlow';
-import { MyReservations } from './components/reservations/MyReservations';
-import { ReservationDetail } from './components/reservations/ReservationDetail';
-import { ReportIssue } from './components/reports/ReportIssue';
-import { AdminReports } from './components/reports/AdminReports';
-import { UserList } from './components/admin/UserList';
-import { AddManualBooking } from './components/admin/AddManualBooking';
-import { UserProfile } from './components/user/UserProfile';
-import './App.css';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { Layout } from "./components/Layout";
+import { ProtectedRoute } from "./components/common/ProtectedRoute";
+import { Login } from "./components/auth/Login";
+import { OAuth2Callback } from "./components/auth/OAuth2Callback";
+import { Register } from "./components/auth/Register";
+import { Dashboard } from "./components/dashboard/Dashboard";
+import { MasterSchedule } from "./components/schedule/MasterSchedule";
+import { BookingFlow } from "./components/booking/BookingFlow";
+import { MyReservations } from "./components/reservations/MyReservations";
+import { ReservationDetail } from "./components/reservations/ReservationDetail";
+import { ReportIssue } from "./components/reports/ReportIssue";
+import { AdminReports } from "./components/reports/AdminReports";
+import { UserList } from "./components/admin/UserList";
+import { AddManualBooking } from "./components/admin/AddManualBooking";
+import { UserProfile } from "./components/user/UserProfile";
+import "./App.css";
 
 function App() {
   return (
@@ -23,6 +29,7 @@ function App() {
         <Routes>
           {/* Auth routes - no layout */}
           <Route path="/login" element={<Login />} />
+          <Route path="/oauth2/callback" element={<OAuth2Callback />} />
           <Route path="/register" element={<Register />} />
 
           {/* App routes - with layout and protection */}
