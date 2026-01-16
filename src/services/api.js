@@ -1,18 +1,36 @@
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
-const USER_API_BASE =
-  import.meta.env.VITE_USER_API_URL || "http://localhost:8081";
+/**
+ * API Gateway configuration
+ * All services communicate through the API Gateway at port 9000
+ */
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:9000";
+
+// Centralized endpoint routes
+export const API_ENDPOINTS = {
+  // Auth endpoints
+  AUTH_LOGIN: "/auth/login",
+  AUTH_REGISTER: "/auth/register",
+  AUTH_REFRESH: "/auth/refresh",
+  AUTH_LOGOUT: "/auth/logout",
+
+  // Courts endpoints
+  COURTS_GET_ALL: "/courts",
+  COURTS_GET_BY_ID: (id) => `/courts/${id}`,
+
+  // Bookings endpoints
+  BOOKINGS_CREATE: "/bookings",
+  BOOKINGS_GET_MY: "/bookings",
+  BOOKINGS_GET_BY_ID: (id) => `/bookings/${id}`,
+  BOOKINGS_CANCEL: (id) => `/bookings/${id}`,
+
+  // Users endpoints
+  USERS_PROFILE: "/users/me",
+  USERS_GET_BY_ID: (id) => `/users/${id}`,
+};
 
 const api = axios.create({
   baseURL: API_BASE,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-const userApi = axios.create({
-  baseURL: USER_API_BASE,
   headers: {
     "Content-Type": "application/json",
   },
@@ -77,7 +95,7 @@ api.interceptors.response.use(
 
       try {
         const resp = await axios.post(
-          `${API_BASE}/auth/refresh`,
+          `${API_BASE}${API_ENDPOINTS.AUTH_REFRESH}`,
           { refreshToken },
           { headers: { "Content-Type": "application/json" } }
         );
@@ -106,17 +124,4 @@ api.interceptors.response.use(
   }
 );
 
-// Add interceptor to userApi to attach token
-userApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
 export default api;
-export { userApi };
