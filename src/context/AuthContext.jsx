@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { authService } from "../services/authService";
 import { userService } from "../services/userService";
+import { API_ENDPOINTS } from "../services/api";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:9000";
 
 const AuthContext = createContext(null);
 
@@ -53,24 +54,10 @@ export function AuthProvider({ children }) {
 
   const register = async (userData) => {
     try {
-      // If backend supports register endpoint use it; fallback to mock register not implemented
-      const resp = await fetch(`${API_BASE}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData),
-      });
-      if (!resp.ok) throw new Error("Registration failed");
-      const data = await resp.json();
-      const { accessToken, refreshToken } = data || {};
-      if (accessToken) {
-        localStorage.setItem("accessToken", accessToken);
-      }
-      if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
-      }
-      const profile = await userService.getCurrentUserProfile();
-      localStorage.setItem("user", JSON.stringify(profile));
-      setUser(profile);
+      const { success, user: registeredUser } = await authService.register(
+        userData
+      );
+      setUser(registeredUser);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -83,7 +70,7 @@ export function AuthProvider({ children }) {
   };
 
   const startGoogleOAuth = () => {
-    // Redirect to backend OAuth2 authorization endpoint
+    // Redirect to API Gateway OAuth2 authorization endpoint
     window.location.href = `${API_BASE}/oauth2/authorization/google`;
   };
 
