@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User } from 'lucide-react';
-import { ImageWithFallback } from '../common/ImageWithFallback';
-import { useAuth } from '../../context/AuthContext';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, User } from "lucide-react";
+import { ImageWithFallback } from "../common/ImageWithFallback";
+import { useAuth } from "../../context/AuthContext";
 
 export function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    studentId: '',
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    faculty: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({
@@ -26,30 +26,35 @@ export function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (!formData.faculty.trim()) {
+      setError("Faculty is required");
       return;
     }
 
     setLoading(true);
 
     try {
-      const { confirmPassword, ...userData } = formData;
-      const result = await register(userData);
+      const { name, email, password, faculty } = formData;
+      const result = await register({ name, email, password, faculty });
       if (result.success) {
-        navigate('/dashboard');
+        navigate("/login");
       } else {
-        setError(result.error || 'Registration failed');
+        setError(result.error || "Registration failed");
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -71,7 +76,9 @@ export function Register() {
 
           {/* Title centered */}
           <div className="mb-6 text-center">
-            <h1 className="text-[#003f8f] text-2xl font-semibold mb-2">Create account</h1>
+            <h1 className="text-[#003f8f] text-2xl font-semibold mb-2">
+              Create account
+            </h1>
             <p className="text-gray-600">Sign up to start booking facilities</p>
           </div>
 
@@ -86,7 +93,10 @@ export function Register() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name */}
             <div>
-              <label htmlFor="name" className="block text-sm text-gray-700 mb-2">
+              <label
+                htmlFor="name"
+                className="block text-sm text-gray-700 mb-2"
+              >
                 Full Name
               </label>
               <div className="relative">
@@ -106,25 +116,32 @@ export function Register() {
               </div>
             </div>
 
-            {/* Student ID */}
+            {/* Faculty */}
             <div>
-              <label htmlFor="studentId" className="block text-sm text-gray-700 mb-2">
-                Student ID (Optional)
+              <label
+                htmlFor="faculty"
+                className="block text-sm text-gray-700 mb-2"
+              >
+                Faculty
               </label>
               <input
-                id="studentId"
-                name="studentId"
+                id="faculty"
+                name="faculty"
                 type="text"
-                value={formData.studentId}
+                value={formData.faculty}
                 onChange={handleChange}
-                placeholder="20234567"
+                placeholder="Engineering"
+                required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
               />
             </div>
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm text-gray-700 mb-2"
+              >
                 Email
               </label>
               <div className="relative">
@@ -146,7 +163,10 @@ export function Register() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm text-gray-700 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
@@ -168,7 +188,10 @@ export function Register() {
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm text-gray-700 mb-2">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm text-gray-700 mb-2"
+              >
                 Confirm Password
               </label>
               <div className="relative">
@@ -194,12 +217,12 @@ export function Register() {
               disabled={loading}
               className="w-full py-3 bg-[#cbab42] hover:bg-[#b89935] text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? "Creating account..." : "Create account"}
             </button>
 
             {/* Login Link */}
             <p className="text-center text-sm text-gray-600">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <Link to="/login" className="text-[#003f8f] hover:underline">
                 Sign in
               </Link>
@@ -227,4 +250,3 @@ export function Register() {
     </div>
   );
 }
-

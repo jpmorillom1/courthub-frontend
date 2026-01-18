@@ -13,7 +13,7 @@ import api, { API_ENDPOINTS } from "./api";
 export const getUserNotifications = async (userId) => {
   try {
     const response = await api.get(
-      API_ENDPOINTS.NOTIFICATIONS_GET_USER(userId)
+      API_ENDPOINTS.NOTIFICATIONS_GET_USER(userId),
     );
     return response.data || [];
   } catch (error) {
@@ -31,7 +31,7 @@ export const getUserNotifications = async (userId) => {
 export const getNotificationReport = async (userId) => {
   try {
     const response = await api.get(
-      API_ENDPOINTS.NOTIFICATIONS_GET_REPORT(userId)
+      API_ENDPOINTS.NOTIFICATIONS_GET_REPORT(userId),
     );
     return response.data;
   } catch (error) {

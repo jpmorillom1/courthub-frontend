@@ -26,7 +26,7 @@ const parseJwt = (token) => {
         .map(function (c) {
           return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
         })
-        .join("")
+        .join(""),
     );
     return JSON.parse(json);
   } catch (e) {
@@ -123,30 +123,49 @@ export const authService = {
    */
   async register(userData) {
     try {
-      const resp = await api.post(API_ENDPOINTS.AUTH_REGISTER, userData);
+      const payload = {
+        ...userData,
+        roles:
+          Array.isArray(userData.roles) && userData.roles.length > 0
+            ? userData.roles
+            : ["USER"],
+      };
 
-      const { accessToken, refreshToken } = resp.data || {};
-      if (!accessToken) throw new Error("Invalid registration response");
+      const resp = await api.post(API_ENDPOINTS.USERS_CREATE, payload);
 
-      saveTokens({ accessToken, refreshToken });
+      const { accessToken, refreshToken, ...rest } = resp.data || {};
 
-      // Get user profile
-      try {
-        const profileResp = await api.get(API_ENDPOINTS.USERS_PROFILE);
-        const user = profileResp.data;
-        localStorage.setItem("user", JSON.stringify(user));
-        return { accessToken, refreshToken, user };
-      } catch (err) {
-        const payload = parseJwt(accessToken);
-        const user = payload
-          ? {
-              email: payload.sub || payload.email,
-              id: payload.user_id || payload.sub,
-            }
-          : null;
-        if (user) localStorage.setItem("user", JSON.stringify(user));
-        return { accessToken, refreshToken, user };
+      // Case 1: backend returns tokens
+      if (accessToken) {
+        saveTokens({ accessToken, refreshToken });
+
+        try {
+          const profileResp = await api.get(API_ENDPOINTS.USERS_PROFILE);
+          const user = profileResp.data;
+          localStorage.setItem("user", JSON.stringify(user));
+          return { accessToken, refreshToken, user };
+        } catch (err) {
+          const payload = parseJwt(accessToken);
+          const user = payload
+            ? {
+                email: payload.sub || payload.email,
+                id: payload.user_id || payload.sub,
+              }
+            : null;
+          if (user) localStorage.setItem("user", JSON.stringify(user));
+          return { accessToken, refreshToken, user };
+        }
       }
+
+      // Case 2: backend only returns the created user (no tokens)
+      const user = resp.data || {
+        email: payload.email,
+        name: payload.name,
+        faculty: payload.faculty,
+        roles: payload.roles,
+      };
+      localStorage.setItem("user", JSON.stringify(user));
+      return { user };
     } catch (error) {
       console.error("Registration error:", error);
       throw error;

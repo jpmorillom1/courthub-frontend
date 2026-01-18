@@ -54,11 +54,9 @@ export function AuthProvider({ children }) {
 
   const register = async (userData) => {
     try {
-      const { success, user: registeredUser } = await authService.register(
-        userData
-      );
-      setUser(registeredUser);
-      return { success: true };
+      const result = await authService.register(userData);
+      // Do not set user here; backend doesn't return tokens. Caller can redirect to login.
+      return { success: true, user: result.user || null };
     } catch (error) {
       return { success: false, error: error.message };
     }
