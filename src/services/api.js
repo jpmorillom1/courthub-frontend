@@ -18,15 +18,22 @@ export const API_ENDPOINTS = {
   COURTS_GET_ALL: "/courts",
   COURTS_GET_BY_ID: (id) => `/courts/${id}`,
 
+  // Users endpoints (registration & profile)
+  USERS_CREATE: "/users",
+
   // Bookings endpoints
   BOOKINGS_CREATE: "/bookings",
-  BOOKINGS_GET_MY: "/bookings",
+  BOOKINGS_GET_USER: (userId) => `/bookings/user/${userId}`,
   BOOKINGS_GET_BY_ID: (id) => `/bookings/${id}`,
-  BOOKINGS_CANCEL: (id) => `/bookings/${id}`,
+  BOOKINGS_CANCEL: (id) => `/bookings/${id}/cancel`,
 
   // Users endpoints
   USERS_PROFILE: "/users/me",
   USERS_GET_BY_ID: (id) => `/users/${id}`,
+
+  // Notifications endpoints
+  NOTIFICATIONS_GET_USER: (userId) => `/api/notifications/user/${userId}`,
+  NOTIFICATIONS_GET_REPORT: (userId) => `/api/notifications/report/${userId}`,
 };
 
 const api = axios.create({
@@ -58,7 +65,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 api.interceptors.response.use(
@@ -97,7 +104,7 @@ api.interceptors.response.use(
         const resp = await axios.post(
           `${API_BASE}${API_ENDPOINTS.AUTH_REFRESH}`,
           { refreshToken },
-          { headers: { "Content-Type": "application/json" } }
+          { headers: { "Content-Type": "application/json" } },
         );
         const { accessToken, refreshToken: newRefresh } = resp.data || {};
         if (accessToken) {
@@ -121,7 +128,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
