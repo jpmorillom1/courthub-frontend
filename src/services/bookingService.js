@@ -1,14 +1,84 @@
 import api, { API_ENDPOINTS } from "./api";
 
+// Helpers for reservations mapping
+const pad2 = (n) => String(n).padStart(2, "0");
+const normalizeTime = (time) => {
+  if (typeof time === "string") {
+    const [h = "0", m = "0", s = "0"] = time.split(":");
+    return {
+      hour: Number.parseInt(h, 10) || 0,
+      minute: Number.parseInt(m, 10) || 0,
+      second: Number.parseInt(s, 10) || 0,
+    };
+  }
+  if (
+    time &&
+    typeof time.hour === "number" &&
+    typeof time.minute === "number"
+  ) {
+    return {
+      hour: time.hour,
+      minute: time.minute,
+      second: typeof time.second === "number" ? time.second : 0,
+    };
+  }
+  return { hour: 0, minute: 0, second: 0 };
+};
+const toTimeString = (timeInput) => {
+  const timeObj = normalizeTime(timeInput);
+  return `${pad2(timeObj.hour)}:${pad2(timeObj.minute)}`;
+};
+const toDateTime = (dateStr, timeInput) => {
+  const t = normalizeTime(timeInput);
+  const d = new Date(dateStr);
+  d.setHours(t.hour, t.minute, t.second, 0);
+  return d;
+};
+const computeDurationHours = (start, end) => {
+  const ms = end.getTime() - start.getTime();
+  return Math.max(1, Math.round(ms / (1000 * 60 * 60)));
+};
+const mapStatus = (status, start, end) => {
+  const now = new Date();
+  if (String(status).toUpperCase() === "CANCELLED") return "cancelled";
+  if (end.getTime() < now.getTime()) return "past";
+  return "confirmed";
+};
+const getCourtDetails = async (courtId) => {
+  try {
+    const { data } = await api.get(API_ENDPOINTS.COURTS_GET_BY_ID(courtId));
+    const name = data?.name || data?.courtName || "Unknown Court";
+    const sportRaw =
+      data?.sport || data?.sportType || data?.type || "basketball";
+    const sport = String(sportRaw).toLowerCase();
+    return { courtName: name, sport };
+  } catch (e) {
+    return { courtName: "Unknown Court", sport: "basketball" };
+  }
+};
+const mapBookingToUi = async (booking) => {
+  const start = toDateTime(booking.date, booking.startTime);
+  const end = toDateTime(booking.date, booking.endTime);
+  const time = toTimeString(booking.startTime);
+  const duration = computeDurationHours(start, end);
+  const { courtName, sport } = await getCourtDetails(booking.courtId);
+
+  return {
+    id: booking.id,
+    date: booking.date,
+    time,
+    duration,
+    courtName,
+    sport,
+    status: mapStatus(booking.status, start, end),
+  };
+};
+
 export const bookingService = {
-  // 1. Gets the list of sports (New endpoint)
   async getSports() {
     try {
-      // Assuming your endpoint is /courts/sports and returns a list of strings or objects
-      // If it's not ready yet, the catch will use the fallback.
       const response = await api.get("/courts/sports");
 
-      // We map the response to have image (you can adjust this according to your actual response)
       return response.data.map((sportName) => ({
         id: sportName.toUpperCase(), // The ID must be the ENUM (SOCCER)
         name: sportName.charAt(0) + sportName.slice(1).toLowerCase(), // Soccer
@@ -16,7 +86,6 @@ export const bookingService = {
       }));
     } catch (error) {
       console.warn("Using sports fallback...");
-      // Fallback: we get all courts and extract unique sports
       const courts = await this.getCourts();
       const uniqueSports = [...new Set(courts.map((c) => c.sport))];
       return uniqueSports.map((sport) => ({
@@ -27,10 +96,26 @@ export const bookingService = {
     }
   },
 
-  // 2. Gets courts filtered by the 'sportType' param from Backend
+  async getMyReservations(userId) {
+    const { data } = await api.get(API_ENDPOINTS.BOOKINGS_GET_USER(userId));
+    if (!Array.isArray(data)) return [];
+    const mapped = await Promise.all(data.map((b) => mapBookingToUi(b)));
+    return mapped;
+  },
+
+  async getReservationById(id) {
+    const { data } = await api.get(API_ENDPOINTS.BOOKINGS_GET_BY_ID(id));
+    if (!data) return null;
+    return await mapBookingToUi(data);
+  },
+
+  async cancelReservation(id) {
+    const { data } = await api.patch(API_ENDPOINTS.BOOKINGS_CANCEL(id));
+    return await mapBookingToUi(data);
+  },
+
   async getCourts(sport = null) {
     try {
-      // The Java backend expects ?sportType=SOCCER (not ?sport=soccer)
       const url = sport
         ? `${API_ENDPOINTS.COURTS_GET_ALL}?sportType=${sport.toUpperCase()}`
         : API_ENDPOINTS.COURTS_GET_ALL;
@@ -41,15 +126,12 @@ export const bookingService = {
     }
   },
 
-  // 3. Create Reservation (Adjusted to the Body you gave me)
   async createReservation(reservationData) {
     try {
-      // Your backend expects: { courtId, date, startTime }
-      // endTime is not necessary according to your JSON example.
       const payload = {
         courtId: reservationData.courtId,
-        date: reservationData.date, // "2026-01-19"
-        startTime: reservationData.startTime, // "19:00" (sin reemplazar : por -)
+        date: reservationData.date,
+        startTime: reservationData.startTime,
       };
 
       const response = await api.post(API_ENDPOINTS.BOOKINGS_CREATE, payload);
@@ -62,7 +144,6 @@ export const bookingService = {
   // Visual helpers
   getTimeSlots(dateStr) {
     const dateObj = new Date(dateStr);
-    // Simple adjustment to avoid timezone offset when displaying day
     const userTimezoneOffset = dateObj.getTimezoneOffset() * 60000;
     const adjustedDate = new Date(dateObj.getTime() + userTimezoneOffset);
 
