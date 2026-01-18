@@ -8,17 +8,19 @@ import {
   Users,
   BarChart3,
   Settings,
-  Bell,
   Menu,
   X,
+  Bell,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { NotificationsPanel } from "./common/NotificationsPanel";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Master Schedule", href: "/schedule", icon: Calendar },
   { name: "Book", href: "/booking", icon: CalendarPlus },
   { name: "Reservations", href: "/reservations", icon: ClipboardList },
+  { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Users", href: "/users", icon: Users },
   { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
@@ -36,6 +38,7 @@ export function Layout({ children }) {
       return "Report an Issue";
     if (path.includes("/reservations/")) return "Reservation Details";
     if (path === "/reservations") return "My Reservations";
+    if (path === "/notifications") return "Notifications";
     if (path === "/dashboard") return "Analytics Dashboard";
     if (path === "/schedule") return "Master Schedule";
     if (path === "/booking") return "Book a Facility";
@@ -171,10 +174,7 @@ export function Layout({ children }) {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[#ef4444] rounded-full" />
-            </button>
+            <NotificationsPanel />
 
             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
               <div className="text-right hidden sm:block">

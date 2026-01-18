@@ -20,6 +20,7 @@ import { AdminReports } from "./components/reports/AdminReports";
 import { UserList } from "./components/admin/UserList";
 import { AddManualBooking } from "./components/admin/AddManualBooking";
 import { UserProfile } from "./components/user/UserProfile";
+import { NotificationsPage } from "./components/notifications/NotificationsPage";
 import "./App.css";
 
 function App() {
@@ -139,6 +140,16 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <UserProfile />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <NotificationsPage />
                 </Layout>
               </ProtectedRoute>
             }
