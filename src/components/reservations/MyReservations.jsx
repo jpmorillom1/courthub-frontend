@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Eye } from 'lucide-react';
-import { bookingService } from '../../services/bookingService';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Calendar, Clock, MapPin, Eye } from "lucide-react";
+import { bookingService } from "../../services/bookingService";
 
 export function MyReservations() {
   const [reservations, setReservations] = useState([]);
@@ -10,12 +10,12 @@ export function MyReservations() {
   useEffect(() => {
     const loadReservations = async () => {
       try {
-        const userStr = localStorage.getItem('user');
+        const userStr = localStorage.getItem("user");
         const user = userStr ? JSON.parse(userStr) : null;
-        const data = await bookingService.getMyReservations(user?.id || '2');
+        const data = await bookingService.getMyReservations(user?.id || "2");
         setReservations(data);
       } catch (error) {
-        console.error('Error loading reservations:', error);
+        console.error("Error loading reservations:", error);
       } finally {
         setLoading(false);
       }
@@ -26,19 +26,19 @@ export function MyReservations() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'confirmed':
+      case "confirmed":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-green-100 text-green-700">
             Confirmed
           </span>
         );
-      case 'past':
+      case "past":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
             Past
           </span>
         );
-      case 'cancelled':
+      case "cancelled":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-red-100 text-red-700">
             Cancelled
@@ -52,40 +52,44 @@ export function MyReservations() {
   const getSportImage = (sport) => {
     const images = {
       basketball:
-        'https://images.unsplash.com/photo-1710378844976-93a6538671ef?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNrZXRiYWxsJTIwY291cnQlMjBpbmRvb3J8ZW58MXx8fHwxNzY2NTI0MTA2fDA&ixlib=rb-4.1.0&q=80&w=1080',
+        "https://images.unsplash.com/photo-1710378844976-93a6538671ef?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXNrZXRiYWxsJTIwY291cnQlMjBpbmRvb3J8ZW58MXx8fHwxNzY2NTI0MTA2fDA&ixlib=rb-4.1.0&q=80&w=1080",
       soccer:
-        'https://images.unsplash.com/photo-1641029185333-7ed62a19d5f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NjZXIlMjBmaWVsZCUyMGFlcmlhbHxlbnwxfHx8fDE3NjY1MjQxMDZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
+        "https://images.unsplash.com/photo-1641029185333-7ed62a19d5f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NjZXIlMjBmaWVsZCUyMGFlcmlhbHxlbnwxfHx8fDE3NjY1MjQxMDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
       volleyball:
-        'https://images.unsplash.com/photo-1671706466693-28fb04684694?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2b2xsZXliYWxsJTIwY291cnQlMjBzcG9ydHxlbnwxfHx8fDE3NjY1MjQxMDZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
+        "https://images.unsplash.com/photo-1671706466693-28fb04684694?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2b2xsZXliYWxsJTIwY291cnQlMjBzcG9ydHxlbnwxfHx8fDE3NjY1MjQxMDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
     };
     return images[sport] || images.basketball;
   };
 
   const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   const formatTime = (time, duration) => {
-    const [hours, minutes] = time.split(':');
+    const [hours, minutes] = time.split(":");
     const start = new Date();
     start.setHours(parseInt(hours), parseInt(minutes), 0);
 
     const end = new Date(start);
     end.setHours(end.getHours() + duration);
 
-    return `${start.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+    return `${start.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
   };
 
-  const upcomingReservations = reservations.filter((r) => r.status === 'confirmed');
-  const pastReservations = reservations.filter((r) => r.status !== 'confirmed');
+  const upcomingReservations = reservations.filter(
+    (r) => r.status === "confirmed",
+  );
+  const pastReservations = reservations.filter((r) => r.status !== "confirmed");
 
   if (loading) {
     return (
@@ -101,7 +105,9 @@ export function MyReservations() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-gray-900">Your Reservations</h2>
-          <p className="text-gray-600 mt-1">Manage your upcoming and past bookings</p>
+          <p className="text-gray-600 mt-1">
+            Manage your upcoming and past bookings
+          </p>
         </div>
         <Link
           to="/booking"
@@ -115,7 +121,9 @@ export function MyReservations() {
       <div>
         <h3 className="text-gray-900 mb-4">Upcoming</h3>
         {upcomingReservations.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No upcoming reservations</p>
+          <p className="text-gray-500 text-center py-8">
+            No upcoming reservations
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {upcomingReservations.map((reservation) => (
@@ -134,7 +142,9 @@ export function MyReservations() {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h4 className="text-gray-900 mb-1 capitalize">{reservation.sport}</h4>
+                      <h4 className="text-gray-900 mb-1 capitalize">
+                        {reservation.sport}
+                      </h4>
                       <div className="flex items-center gap-2 text-gray-600 text-sm">
                         <MapPin className="w-4 h-4" />
                         <span>{reservation.courtName}</span>
@@ -150,7 +160,9 @@ export function MyReservations() {
                     </div>
                     <div className="flex items-center gap-2 text-gray-600 text-sm">
                       <Clock className="w-4 h-4" />
-                      <span>{formatTime(reservation.time, reservation.duration)}</span>
+                      <span>
+                        {formatTime(reservation.time, reservation.duration)}
+                      </span>
                     </div>
                   </div>
 
@@ -191,7 +203,9 @@ export function MyReservations() {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h4 className="text-gray-900 mb-1 capitalize">{reservation.sport}</h4>
+                      <h4 className="text-gray-900 mb-1 capitalize">
+                        {reservation.sport}
+                      </h4>
                       <div className="flex items-center gap-2 text-gray-600 text-sm">
                         <MapPin className="w-4 h-4" />
                         <span>{reservation.courtName}</span>
@@ -207,7 +221,9 @@ export function MyReservations() {
                     </div>
                     <div className="flex items-center gap-2 text-gray-600 text-sm">
                       <Clock className="w-4 h-4" />
-                      <span>{formatTime(reservation.time, reservation.duration)}</span>
+                      <span>
+                        {formatTime(reservation.time, reservation.duration)}
+                      </span>
                     </div>
                   </div>
 
@@ -227,4 +243,3 @@ export function MyReservations() {
     </div>
   );
 }
-
