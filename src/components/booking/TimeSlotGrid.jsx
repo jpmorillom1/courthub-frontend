@@ -82,10 +82,10 @@ export function TimeSlotGrid({
                           selected
                             ? "bg-[#cbab42] text-white ring-2 ring-offset-2 ring-[#cbab42]"
                             : available
-                            ? "bg-emerald-50 text-emerald-700 hover:bg-[#cbab42] hover:text-white"
-                            : booked
-                            ? "bg-red-50 text-red-400 cursor-not-allowed line-through"
-                            : "bg-gray-50 text-gray-400 cursor-not-allowed"
+                              ? "bg-emerald-50 text-emerald-700 hover:bg-[#cbab42] hover:text-white"
+                              : booked
+                                ? "bg-red-50 text-red-400 cursor-not-allowed line-through"
+                                : "bg-gray-50 text-gray-400 cursor-not-allowed"
                         }`}
                       >
                         {time}
@@ -103,9 +103,13 @@ export function TimeSlotGrid({
             <button
               onClick={onConfirm}
               disabled={isProcessing}
-              className="bg-[#cbab42] text-white px-8 py-4 rounded-xl font-bold shadow-xl hover:scale-105"
+              className={`px-8 py-4 rounded-xl font-bold shadow-xl transition-all ${
+                isProcessing
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#cbab42] text-white hover:scale-105"
+              }`}
             >
-              {isProcessing ? "Processing..." : "Confirm"}
+              {isProcessing ? "Redirecting to payment..." : "Confirm and Pay"}
             </button>
           </div>
         )}
