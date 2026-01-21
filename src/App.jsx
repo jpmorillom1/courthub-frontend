@@ -21,6 +21,8 @@ import { UserList } from "./components/admin/UserList";
 import { AddManualBooking } from "./components/admin/AddManualBooking";
 import { UserProfile } from "./components/user/UserProfile";
 import { NotificationsPage } from "./components/notifications/NotificationsPage";
+import { PaymentSuccess } from "./components/booking/PaymentSuccess";
+import { PaymentCancel } from "./components/booking/PaymentCancel";
 import "./App.css";
 
 function App() {
@@ -151,6 +153,24 @@ function App() {
                 <Layout>
                   <NotificationsPage />
                 </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Payment routes - no layout needed for better UX */}
+          <Route
+            path="/payment/success"
+            element={
+              <ProtectedRoute>
+                <PaymentSuccess />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/cancel"
+            element={
+              <ProtectedRoute>
+                <PaymentCancel />
               </ProtectedRoute>
             }
           />
