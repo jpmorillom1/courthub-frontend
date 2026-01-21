@@ -50,7 +50,7 @@ export function useAvailability(courtId, startDate, endDate) {
       courtRef,
       orderByKey(),
       startAt(startDate),
-      endAt(endDate)
+      endAt(endDate),
     );
 
     const unsubscribe = onValue(
@@ -65,10 +65,10 @@ export function useAvailability(courtId, startDate, endDate) {
         setError(null);
       },
       (err) => {
-        console.error("Error en el listener de Firebase:", err);
+        console.error("Error on listener Firebase:", err);
         setError(err);
         setLoading(false);
-      }
+      },
     );
 
     return () => unsubscribe();

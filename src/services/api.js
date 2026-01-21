@@ -27,6 +27,11 @@ export const API_ENDPOINTS = {
   BOOKINGS_GET_BY_ID: (id) => `/bookings/${id}`,
   BOOKINGS_CANCEL: (id) => `/bookings/${id}/cancel`,
 
+  // Payments endpoints
+  PAYMENTS_CHECKOUT: "/api/payments/checkout",
+  PAYMENTS_GET_BY_BOOKING: (bookingId) => `/api/payments/booking/${bookingId}`,
+  PAYMENTS_GET_USER: "/api/payments/user",
+
   // Users endpoints
   USERS_PROFILE: "/users/me",
   USERS_GET_BY_ID: (id) => `/users/${id}`,

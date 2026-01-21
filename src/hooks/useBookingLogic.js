@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { bookingService } from "../services/bookingService";
+import { paymentService } from "../services/paymentService";
 import { useAvailability } from "./useAvailability";
 
 const COURT_CONFIG = {
@@ -18,7 +19,7 @@ export function useBookingLogic() {
   const [selectedCourt, setSelectedCourt] = useState(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [selectedTime, setSelectedTime] = useState(null);
 
@@ -64,7 +65,7 @@ export function useBookingLogic() {
   const { slotsData: firebaseWeekData, loading: fbLoading } = useAvailability(
     selectedCourt?.id,
     weekStartStr,
-    weekEndStr
+    weekEndStr,
   );
 
   /* =======================
@@ -122,16 +123,28 @@ export function useBookingLogic() {
   const handleConfirm = async () => {
     setIsProcessing(true);
     try {
-      await bookingService.createReservation({
+      const bookingResponse = await bookingService.createReservation({
         courtId: selectedCourt.id,
         date: selectedDate,
         startTime: selectedTime,
       });
-      alert("Reservation confirmed!");
-      navigate("/reservations");
+
+      const paymentResponse = await paymentService.createCheckoutSession(
+        bookingResponse.id,
+      );
+
+      if (paymentResponse.checkoutUrl) {
+        window.location.href = paymentResponse.checkoutUrl;
+      } else {
+        throw new Error("No payment URL received");
+      }
     } catch (e) {
-      alert(e.response?.data?.message || e.message);
-    } finally {
+      console.error("Error in the booking and payment process:", e);
+      const errorMessage =
+        e.response?.data?.message ||
+        e.message ||
+        "Error processing the reservation. Please try again.";
+      alert(errorMessage);
       setIsProcessing(false);
     }
   };

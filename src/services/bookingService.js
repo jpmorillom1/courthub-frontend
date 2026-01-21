@@ -28,9 +28,14 @@ const toTimeString = (timeInput) => {
   const timeObj = normalizeTime(timeInput);
   return `${pad2(timeObj.hour)}:${pad2(timeObj.minute)}`;
 };
+
 const toDateTime = (dateStr, timeInput) => {
   const t = normalizeTime(timeInput);
-  const d = new Date(dateStr);
+
+  const [year, month, day] = dateStr.split("-").map(Number);
+
+  const d = new Date(year, month - 1, day);
+
   d.setHours(t.hour, t.minute, t.second, 0);
   return d;
 };
