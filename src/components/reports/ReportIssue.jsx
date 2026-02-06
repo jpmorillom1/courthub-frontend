@@ -1,23 +1,23 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { courtIssueService } from '../../services/courtIssueService';
-import api, { API_ENDPOINTS } from '../../services/api';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { AlertCircle, ArrowLeft } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { courtIssueService } from "../../services/courtIssueService";
+import api, { API_ENDPOINTS } from "../../services/api";
 
 const reportIssueSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
-  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
 });
 
 export function ReportIssue() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loadingReservation, setLoadingReservation] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [courtId, setCourtId] = useState(null);
   const [reservation, setReservation] = useState(null);
   const {
@@ -27,9 +27,9 @@ export function ReportIssue() {
   } = useForm({
     resolver: zodResolver(reportIssueSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      severity: 'MEDIUM',
+      title: "",
+      description: "",
+      severity: "MEDIUM",
     },
   });
 
@@ -41,8 +41,8 @@ export function ReportIssue() {
         setReservation(data);
         setCourtId(data.courtId);
       } catch (err) {
-        console.error('Error loading reservation:', err);
-        setError('Error loading reservation details');
+        console.error("Error loading reservation:", err);
+        setError("Error loading reservation details");
       } finally {
         setLoadingReservation(false);
       }
@@ -55,11 +55,11 @@ export function ReportIssue() {
 
   const onSubmit = async (data) => {
     if (!courtId) {
-      setError('Court information not available');
+      setError("Court information not available");
       return;
     }
 
-    setError('');
+    setError("");
 
     try {
       await courtIssueService.reportIssue(courtId, {
@@ -68,10 +68,13 @@ export function ReportIssue() {
         severity: data.severity,
       });
 
-      alert('Issue reported successfully!');
+      alert("Issue reported successfully!");
       navigate(`/reservations/${id}`);
     } catch (err) {
-      setError('Error reporting issue: ' + (err.response?.data?.message || err.message));
+      setError(
+        "Error reporting issue: " +
+          (err.response?.data?.message || err.message),
+      );
     }
   };
 
@@ -130,7 +133,10 @@ export function ReportIssue() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Issue Title */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Issue Title
               </label>
               <input
@@ -138,7 +144,7 @@ export function ReportIssue() {
                 name="title"
                 type="text"
                 placeholder="e.g., Broken net on south basket"
-                {...registerField('title')}
+                {...registerField("title")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
               />
               {errors.title?.message && (
@@ -150,7 +156,10 @@ export function ReportIssue() {
 
             {/* Description */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Description
               </label>
               <textarea
@@ -158,7 +167,7 @@ export function ReportIssue() {
                 name="description"
                 placeholder="Please provide details about the issue..."
                 rows={6}
-                {...registerField('description')}
+                {...registerField("description")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all resize-none"
               />
               {errors.description?.message && (
@@ -170,13 +179,16 @@ export function ReportIssue() {
 
             {/* Severity */}
             <div>
-              <label htmlFor="severity" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="severity"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Severity
               </label>
               <select
                 id="severity"
                 name="severity"
-                {...registerField('severity')}
+                {...registerField("severity")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
               >
                 <option value="LOW">Low</option>
@@ -205,7 +217,7 @@ export function ReportIssue() {
                 disabled={isSubmitting}
                 className="flex-1 px-6 py-3 bg-[#cbab42] hover:bg-[#b89935] text-white rounded-lg transition-colors disabled:opacity-50"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                {isSubmitting ? "Submitting..." : "Submit Report"}
               </button>
             </div>
           </form>
@@ -214,4 +226,3 @@ export function ReportIssue() {
     </div>
   );
 }
-
