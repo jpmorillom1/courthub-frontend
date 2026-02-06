@@ -25,7 +25,16 @@ import { NotificationsPage } from "./components/notifications/NotificationsPage"
 import { PaymentSuccess } from "./components/booking/PaymentSuccess";
 import { PaymentCancel } from "./components/booking/PaymentCancel";
 import { userService } from "./services/userService";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 function HomeRedirect() {
   const { user } = useAuth();
@@ -35,7 +44,7 @@ function HomeRedirect() {
 
 function App() {
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <AuthInitializer />
       <Router>
         <Routes>
@@ -185,7 +194,7 @@ function App() {
           />
         </Routes>
       </Router>
-    </>
+    </QueryClientProvider>
   );
 }
 
