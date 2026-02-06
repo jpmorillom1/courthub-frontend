@@ -41,7 +41,7 @@ export const userService = {
    */
   async getAllUsers() {
     try {
-      const response = await api.get("/users");
+      const response = await api.get("/users/internal/users/all");
       return response.data;
     } catch (error) {
       console.error("Error fetching users:", error);
