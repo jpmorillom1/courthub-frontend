@@ -5,7 +5,7 @@ import {
   AlertTriangle,
   Wrench,
   Award,
-  AlertCircle,
+  CheckCircle,
 } from 'lucide-react';
 import {
   PieChart,
@@ -20,56 +20,21 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { dashboardService } from '../../services/dashboardService';
+import { analyticsService } from '../../services/analyticsService';
 
 export function Dashboard() {
-  const [kpiData, setKpiData] = useState([]);
-  const [facultyData, setFacultyData] = useState([]);
-  const [reservationData, setReservationData] = useState([]);
-  const [heatmapData, setHeatmapData] = useState([]);
-  const [sanctionsData, setSanctionsData] = useState([]);
-  const [topStudentsData, setTopStudentsData] = useState([]);
-  const [incidentsData, setIncidentsData] = useState([]);
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [
-          kpis,
-          faculty,
-          reservations,
-          heatmap,
-          sanctions,
-          topStudents,
-          incidents,
-        ] = await Promise.all([
-          dashboardService.getKPIs(),
-          dashboardService.getFacultyDistribution(),
-          dashboardService.getReservationTrends(),
-          dashboardService.getPeakHours(),
-          dashboardService.getSanctions(),
-          dashboardService.getTopStudents(),
-          dashboardService.getIncidents(),
-        ]);
-
-        // Agregar iconos a KPIs
-        const kpisWithIcons = [
-          { ...kpis[0], icon: TrendingUp },
-          { ...kpis[1], icon: Users },
-          { ...kpis[2], icon: AlertTriangle },
-          { ...kpis[3], icon: Wrench },
-        ];
-
-        setKpiData(kpisWithIcons);
-        setFacultyData(faculty);
-        setReservationData(reservations);
-        setHeatmapData(heatmap);
-        setSanctionsData(sanctions);
-        setTopStudentsData(topStudents);
-        setIncidentsData(incidents);
+        const data = await analyticsService.getDashboardData();
+        setDashboardData(data);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
+        setError('Failed to load dashboard data. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -78,12 +43,76 @@ export function Dashboard() {
     loadData();
   }, []);
 
-  const getHeatColor = (value) => {
-    if (value >= 90) return 'bg-[#003f8f]';
-    if (value >= 70) return 'bg-[#cbab42]';
-    if (value >= 50) return 'bg-blue-400';
-    if (value >= 30) return 'bg-blue-200';
-    return 'bg-gray-200';
+  const getHeatColor = (value, maxValue = 10) => {
+    if (maxValue === 0) return 'bg-gray-100';
+    
+    const percentage = (value / maxValue) * 100;
+    
+    if (percentage >= 80) return 'bg-[#003f8f] text-white';
+    if (percentage >= 60) return 'bg-[#1e5ba8] text-white';
+    if (percentage >= 40) return 'bg-[#cbab42] text-gray-900';
+    if (percentage >= 20) return 'bg-blue-300 text-gray-900';
+    if (percentage >= 10) return 'bg-blue-200 text-gray-900';
+    if (percentage > 0) return 'bg-blue-100 text-gray-900';
+    return 'bg-gray-100 text-gray-900';
+  };
+
+  const getMaxHeatmapValue = () => {
+    if (!heatmapData || heatmapData.length === 0) return 0;
+    
+    let max = 0;
+    heatmapData.forEach(day => {
+      Object.entries(day).forEach(([key, value]) => {
+        if (key !== 'day' && typeof value === 'number') {
+          max = Math.max(max, value);
+        }
+      });
+    });
+    return max;
+  };
+
+  const getKPIs = () => {
+    if (!dashboardData?.kpis) return [];
+    
+    const { kpis } = dashboardData;
+    
+    return [
+      {
+        title: "Occupation Rate",
+        value: `${kpis.occupationRate.toFixed(1)}%`,
+        icon: TrendingUp,
+        color: "text-blue-600",
+        bgColor: "bg-blue-50",
+      },
+      {
+        title: "Total Students",
+        value: kpis.totalStudents.toLocaleString(),
+        icon: Users,
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+      },
+      {
+        title: "Maintenance Issues",
+        value: kpis.maintenanceIssues,
+        icon: Wrench,
+        color: "text-orange-600",
+        bgColor: "bg-orange-50",
+      },
+      {
+        title: "Critical Issues",
+        value: kpis.criticalIssues,
+        icon: AlertTriangle,
+        color: "text-red-600",
+        bgColor: "bg-red-50",
+      },
+      {
+        title: "Resolved Issues",
+        value: kpis.resolvedIssues,
+        icon: CheckCircle,
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+      },
+    ];
   };
 
   if (loading) {
@@ -94,10 +123,39 @@ export function Dashboard() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6 flex items-center justify-center h-full">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-900 mb-2">Error loading dashboard</p>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="p-6 flex items-center justify-center h-full">
+        <p className="text-gray-500">No data available</p>
+      </div>
+    );
+  }
+
+  const kpiData = getKPIs();
+  const facultyData = dashboardData.facultyUsage || [];
+  const reservationData = dashboardData.reservationsHistory || [];
+  const heatmapData = Object.entries(dashboardData.heatmap?.dayHourMatrix || {}).map(([day, hours]) => ({
+    day: day.charAt(0).toUpperCase() + day.slice(1).toLowerCase(),
+    ...hours
+  }));
+  const topStudentsData = dashboardData.topActiveStudents || [];
+
   return (
     <div className="p-6 space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
         {kpiData.map((kpi) => {
           const Icon = kpi.icon;
           return (
@@ -109,17 +167,6 @@ export function Dashboard() {
                 <div className="flex-1">
                   <p className="text-gray-600 text-sm mb-1">{kpi.title}</p>
                   <h2 className="text-gray-900 mb-2">{kpi.value}</h2>
-                  <p
-                    className={`text-sm ${
-                      kpi.trend === 'up'
-                        ? 'text-green-600'
-                        : kpi.trend === 'down'
-                        ? 'text-red-600'
-                        : 'text-gray-600'
-                    }`}
-                  >
-                    {kpi.change}
-                  </p>
                 </div>
                 <div className={`${kpi.bgColor} ${kpi.color} p-3 rounded-lg`}>
                   <Icon className="w-6 h-6" />
@@ -142,16 +189,17 @@ export function Dashboard() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ faculty, bookingCount }) => `${faculty}: ${bookingCount}`}
                 outerRadius={80}
                 fill="#8884d8"
-                dataKey="value"
+                dataKey="bookingCount"
+                nameKey="faculty"
               >
                 {facultyData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell key={`cell-${index}`} fill={entry.color || '#8884d8'} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip formatter={(value, name, props) => [`${value} bookings`, props.payload.faculty]} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -159,188 +207,150 @@ export function Dashboard() {
         {/* Peak Hours Heatmap */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 xl:col-span-2">
           <h3 className="text-gray-900 mb-4">Peak Usage Hours</h3>
-          <div className="overflow-x-auto">
-            <div className="inline-block min-w-full">
-              <div className="flex gap-2 mb-2">
-                <div className="w-16"></div>
-                {['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'].map((time) => (
-                  <div key={time} className="w-16 text-center text-xs text-gray-600">
-                    {time}
-                  </div>
-                ))}
+          {heatmapData.length > 0 ? (
+            <div className="overflow-x-auto">
+              <div className="inline-block min-w-full">
+                {(() => {
+                  const maxValue = getMaxHeatmapValue();
+                  const hours = heatmapData[0] ? Object.keys(heatmapData[0]).filter(key => key !== 'day').sort((a, b) => {
+                    return parseInt(a.split(':')[0]) - parseInt(b.split(':')[0]);
+                  }) : [];
+                  
+                  return (
+                    <>
+                      <div className="flex gap-2 mb-2">
+                        <div className="w-16"></div>
+                        {hours.map((hour) => (
+                          <div key={hour} className="w-16 text-center text-xs text-gray-600">
+                            {hour}
+                          </div>
+                        ))}
+                      </div>
+                      {heatmapData.map((row) => (
+                        <div key={row.day} className="flex gap-2 mb-2">
+                          <div className="w-16 text-sm text-gray-600 flex items-center font-medium">{row.day.substring(0, 3)}</div>
+                          {hours.map((hour) => (
+                            <div
+                              key={hour}
+                              className={`w-16 h-10 ${getHeatColor(row[hour] || 0, maxValue)} rounded flex items-center justify-center text-xs font-semibold transition-colors`}
+                              title={`${row.day} ${hour}: ${row[hour] || 0} bookings`}
+                            >
+                              {row[hour] || 0}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                      <div className="mt-4 flex gap-4 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 bg-gray-100"></div>
+                          <span>None</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 bg-blue-100"></div>
+                          <span>Low</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 bg-blue-300"></div>
+                          <span>Medium</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 bg-[#cbab42]"></div>
+                          <span>High</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-4 bg-[#003f8f]"></div>
+                          <span>Peak</span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
-              {heatmapData.map((row) => (
-                <div key={row.day} className="flex gap-2 mb-2">
-                  <div className="w-16 text-sm text-gray-600 flex items-center">{row.day}</div>
-                  {['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'].map((time) => (
-                    <div
-                      key={time}
-                      className={`w-16 h-10 ${getHeatColor(row[time] || 0)} rounded flex items-center justify-center text-xs text-white`}
-                      title={`${row.day} ${time}: ${row[time] || 0}%`}
-                    >
-                      {row[time] || 0}%
-                    </div>
-                  ))}
-                </div>
-              ))}
             </div>
-          </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No heatmap data available</p>
+          )}
         </div>
       </div>
 
       {/* Reservations Chart */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <h3 className="text-gray-900 mb-4">Completed Reservations vs Cancellations</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={reservationData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="month" stroke="#666" />
-            <YAxis stroke="#666" />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="completed" fill="#10b981" name="Completed" radius={[8, 8, 0, 0]} />
-            <Bar dataKey="cancelled" fill="#ef4444" name="Cancelled" radius={[8, 8, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {reservationData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={reservationData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="month" 
+                stroke="#666"
+                tickFormatter={(value, index) => {
+                  const item = reservationData[index];
+                  return item ? `${value} '${String(item.year).slice(-2)}` : value;
+                }}
+              />
+              <YAxis stroke="#666" />
+              <Tooltip 
+                formatter={(value, name) => {
+                  const label = name === 'completedCount' ? 'Completed' : 'Cancelled';
+                  return [value, label];
+                }}
+              />
+              <Legend 
+                formatter={(value) => {
+                  return value === 'completedCount' ? 'Completed' : 'Cancelled';
+                }}
+              />
+              <Bar dataKey="completedCount" fill="#10b981" name="completedCount" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="cancelledCount" fill="#ef4444" name="cancelledCount" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-gray-500 text-center py-12">No reservation data available</p>
+        )}
       </div>
 
-      {/* Operational Tables */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Sanctions Table */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <h3 className="text-gray-900">Sanctions & Blocks Ranking</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-2 text-sm text-gray-600">Student</th>
-                  <th className="text-left py-3 px-2 text-sm text-gray-600">Faculty</th>
-                  <th className="text-center py-3 px-2 text-sm text-gray-600">No-Shows</th>
-                  <th className="text-center py-3 px-2 text-sm text-gray-600">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sanctionsData.map((student, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-2 text-sm text-gray-900">{student.name}</td>
-                    <td className="py-3 px-2 text-sm text-gray-600">{student.faculty}</td>
-                    <td className="py-3 px-2 text-center">
-                      <span className="inline-flex items-center justify-center w-8 h-8 bg-red-100 text-red-600 rounded-full">
-                        {student.noShows}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs ${
-                          student.status === 'Blocked'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-green-100 text-green-700'
-                        }`}
-                      >
-                        {student.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Top Active Students */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <Award className="w-5 h-5 text-[#cbab42]" />
+          <h3 className="text-gray-900">Top Active Students</h3>
         </div>
-
-        {/* Top Active Students */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-4">
-            <Award className="w-5 h-5 text-[#cbab42]" />
-            <h3 className="text-gray-900">Top Active Students</h3>
-          </div>
+        {topStudentsData.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-2 text-sm text-gray-600">Student</th>
                   <th className="text-left py-3 px-2 text-sm text-gray-600">Faculty</th>
-                  <th className="text-center py-3 px-2 text-sm text-gray-600">Reservations</th>
+                  <th className="text-center py-3 px-2 text-sm text-gray-600">Bookings</th>
+                  <th className="text-center py-3 px-2 text-sm text-gray-600">Hours</th>
                   <th className="text-center py-3 px-2 text-sm text-gray-600">Attendance</th>
                 </tr>
               </thead>
               <tbody>
                 {topStudentsData.map((student, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-2 text-sm text-gray-900">{student.name}</td>
+                  <tr key={student.userId || index} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-3 px-2 text-sm text-gray-900">{student.userName}</td>
                     <td className="py-3 px-2 text-sm text-gray-600">{student.faculty}</td>
                     <td className="py-3 px-2 text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 bg-[#cbab42]/10 text-[#cbab42] rounded-full">
-                        {student.reservations}
+                        {student.totalBookings}
                       </span>
                     </td>
                     <td className="py-3 px-2 text-center text-sm text-gray-900">
-                      {student.attendance}
+                      {student.totalHours}h
+                    </td>
+                    <td className="py-3 px-2 text-center text-sm text-gray-900">
+                      {student.attendanceRate}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      {/* Damage & Incident Reports */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-2 mb-4">
-          <Wrench className="w-5 h-5 text-gray-600" />
-          <h3 className="text-gray-900">Damage & Incident Reports</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm text-gray-600">Court</th>
-                <th className="text-left py-3 px-4 text-sm text-gray-600">Issue</th>
-                <th className="text-center py-3 px-4 text-sm text-gray-600">Severity</th>
-                <th className="text-center py-3 px-4 text-sm text-gray-600">Date</th>
-                <th className="text-center py-3 px-4 text-sm text-gray-600">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {incidentsData.map((incident, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm text-gray-900">{incident.court}</td>
-                  <td className="py-3 px-4 text-sm text-gray-600">{incident.issue}</td>
-                  <td className="py-3 px-4 text-center">
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs ${
-                        incident.severity === 'High'
-                          ? 'bg-red-100 text-red-700'
-                          : incident.severity === 'Medium'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      {incident.severity}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-center text-sm text-gray-600">{incident.date}</td>
-                  <td className="py-3 px-4 text-center">
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs ${
-                        incident.status === 'Resolved'
-                          ? 'bg-green-100 text-green-700'
-                          : incident.status === 'In Progress'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      {incident.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        ) : (
+          <p className="text-gray-500 text-center py-8">No student data available</p>
+        )}
       </div>
     </div>
   );
