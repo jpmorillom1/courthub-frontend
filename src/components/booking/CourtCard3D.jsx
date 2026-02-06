@@ -18,23 +18,7 @@ const calculatePositions = (count) => {
   return positions;
 };
 
-const getVideoUrl = (sport, index) => {
-  const normalizedSport = sport ? sport.toLowerCase() : "soccer";
-
-  const videoMap = {
-    soccer: ["/soccer-1.mp4", "/soccer-2.mp4"],
-    basketball: ["/basketball-1.mp4", "/basketball-2.mp4", "/basketball-3.mp4"],
-    volleyball: ["/volleyball-1.mp4"],
-    tennis: ["/soccer-1.mp4"],
-    padel: ["/soccer-1.mp4"],
-  };
-
-  const videos = videoMap[normalizedSport] || videoMap.basketball;
-
-  return videos[index % videos.length];
-};
-
-export function CourtCard3D({ courts, selectedCourt, onCourtSelect, sport }) {
+export function CourtCard3D({ courts, selectedCourt, onCourtSelect }) {
   const positions = calculatePositions(courts.length);
 
   return (
@@ -60,7 +44,7 @@ export function CourtCard3D({ courts, selectedCourt, onCourtSelect, sport }) {
             key={court.id}
             position={positions[i]}
             rotation={[-Math.PI / 2, 0, 0]}
-            videoUrl={getVideoUrl(sport, i)}
+            videoUrl={court.videoUrl}
             label={court.name}
             available={court.status === "ACTIVE"}
             surfaceType={court.surfaceType}

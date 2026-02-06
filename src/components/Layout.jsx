@@ -12,17 +12,28 @@ import {
   X,
   Bell,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../store/authStore";
+import { userService } from "../services/userService";
 import { NotificationsPanel } from "./common/NotificationsPanel";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Master Schedule", href: "/schedule", icon: Calendar },
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    adminOnly: true,
+  },
+  {
+    name: "Master Schedule",
+    href: "/schedule",
+    icon: Calendar,
+    adminOnly: true,
+  },
   { name: "Book", href: "/booking", icon: CalendarPlus },
   { name: "Reservations", href: "/reservations", icon: ClipboardList },
   { name: "Notifications", href: "/notifications", icon: Bell },
-  { name: "Users", href: "/users", icon: Users },
-  { name: "Reports", href: "/reports", icon: BarChart3 },
+  { name: "Users", href: "/users", icon: Users, adminOnly: true },
+  { name: "Reports", href: "/reports", icon: BarChart3, adminOnly: true },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -30,6 +41,10 @@ export function Layout({ children }) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useAuth();
+  const isAdmin = userService.isAdmin(user) || user?.role === "ADMIN";
+  const visibleNavigation = navigation.filter(
+    (item) => !item.adminOnly || isAdmin,
+  );
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -114,7 +129,7 @@ export function Layout({ children }) {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
+            {visibleNavigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <Link

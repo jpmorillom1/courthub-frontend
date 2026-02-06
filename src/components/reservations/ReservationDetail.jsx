@@ -1,30 +1,22 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, MapPin, ArrowLeft, AlertCircle } from "lucide-react";
-import { bookingService } from "../../services/bookingService";
+import { DetailSkeleton } from "../common/skeletons/DetailSkeleton";
+import {
+  useCancelReservation,
+  useReservationDetail,
+} from "../../hooks/queryHooks";
 
 export function ReservationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [reservation, setReservation] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadReservation = async () => {
-      try {
-        const data = await bookingService.getReservationById(id);
-        setReservation(data);
-      } catch (error) {
-        console.error("Error loading reservation:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      loadReservation();
-    }
-  }, [id]);
+  const { data: reservation, isLoading } = useReservationDetail(id);
+  const cancelReservation = useCancelReservation();
+  const userId = useMemo(() => {
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    return user?.id || "2";
+  }, []);
 
   const formatDate = (dateStr) => {
     const [year, month, day] = dateStr.split("-").map(Number);
@@ -52,20 +44,20 @@ export function ReservationDetail() {
 
   const isReservationPast = () => {
     if (!reservation) return false;
-    
+
     const [year, month, day] = reservation.date.split("-").map(Number);
     const [hours, minutes] = reservation.time.split(":").map(Number);
-    
+
     const reservationDate = new Date(year, month - 1, day, hours, minutes);
     const endDate = new Date(reservationDate);
     endDate.setHours(endDate.getHours() + reservation.duration);
-    
+
     return endDate < new Date();
   };
 
   const getStatusBadge = (status) => {
     const isPast = isReservationPast();
-    
+
     switch (status) {
       case "confirmed":
         return (
@@ -84,12 +76,8 @@ export function ReservationDetail() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center h-full">
-        <p className="text-gray-500">Loading reservation details...</p>
-      </div>
-    );
+  if (isLoading) {
+    return <DetailSkeleton />;
   }
 
   if (!reservation) {
@@ -195,10 +183,15 @@ export function ReservationDetail() {
                 <button
                   onClick={async () => {
                     if (
-                      confirm("Are you sure you want to cancel this reservation?")
+                      confirm(
+                        "Are you sure you want to cancel this reservation?",
+                      )
                     ) {
                       try {
-                        await bookingService.cancelReservation(reservation.id);
+                        await cancelReservation.mutateAsync({
+                          id: reservation.id,
+                          userId,
+                        });
                         navigate("/reservations");
                       } catch (error) {
                         alert("Error cancelling reservation: " + error.message);

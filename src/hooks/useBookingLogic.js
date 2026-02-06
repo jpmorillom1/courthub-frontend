@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { bookingService } from "../services/bookingService";
 import { paymentService } from "../services/paymentService";
 import { useAvailability } from "./useAvailability";
+import { useCourts, useSports } from "./queryHooks";
 
 const COURT_CONFIG = {
   startHour: 8,
@@ -24,8 +25,6 @@ export function useBookingLogic() {
   const [selectedTime, setSelectedTime] = useState(null);
 
   // Data
-  const [sports, setSports] = useState([]);
-  const [courts, setCourts] = useState([]);
   const [dateHeaders, setDateHeaders] = useState([]);
   const [baseTimeSlots, setBaseTimeSlots] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -46,18 +45,8 @@ export function useBookingLogic() {
   /* =======================
      INITIAL DATA
      ======================= */
-  useEffect(() => {
-    bookingService.getSports().then(setSports).catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    if (selectedSport) {
-      bookingService
-        .getCourts(selectedSport)
-        .then(setCourts)
-        .catch(console.error);
-    }
-  }, [selectedSport]);
+  const { data: sports = [] } = useSports();
+  const { data: courts = [] } = useCourts(selectedSport);
 
   /* =======================
      AVAILABILITY (Firebase)

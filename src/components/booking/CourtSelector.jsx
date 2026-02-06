@@ -1,13 +1,7 @@
 import { ChevronLeft, Lock } from "lucide-react";
 import { CourtCard3D } from "./CourtCard3D";
 
-export function CourtSelector({
-  courts,
-  selectedCourt,
-  onSelect,
-  onBack,
-  sport,
-}) {
+export function CourtSelector({ courts, selectedCourt, onSelect, onBack }) {
   return (
     <div className="max-w-7xl mx-auto">
       <button
@@ -21,7 +15,6 @@ export function CourtSelector({
         courts={courts.filter((c) => c.status === "ACTIVE")}
         selectedCourt={selectedCourt}
         onCourtSelect={onSelect}
-        sport={sport}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">

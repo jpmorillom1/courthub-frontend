@@ -1,92 +1,79 @@
-import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import { bookingService } from '../../services/bookingService';
+import { useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+} from "lucide-react";
+import { ScheduleSkeleton } from "../common/skeletons/ScheduleSkeleton";
+import { useMasterScheduleData } from "../../hooks/queryHooks";
 
 const hours = [
-  '08:00',
-  '09:00',
-  '10:00',
-  '11:00',
-  '12:00',
-  '13:00',
-  '14:00',
-  '15:00',
-  '16:00',
-  '17:00',
-  '18:00',
-  '19:00',
-  '20:00',
-  '21:00',
-  '22:00',
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+  "21:00",
+  "22:00",
 ];
 
 export function MasterSchedule() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [bookings, setBookings] = useState([]);
-  const [courts, setCourts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data, isLoading, error } = useMasterScheduleData(currentDate);
 
-  useEffect(() => {
-    const loadScheduleData = async () => {
-      try {
-        setLoading(true);
-        const { bookings: loadedBookings, courts: loadedCourts } = await bookingService.getMasterScheduleData(currentDate);
-        setBookings(loadedBookings);
-        setCourts(loadedCourts.length > 0 ? loadedCourts : [
-          'Soccer Field 1',
-          'Basketball Court 1',
-          'Basketball Court 2',
-          'Tennis Court 1',
-          'Volleyball Court',
-        ]);
-      } catch (err) {
-        console.error('Error loading schedule data:', err);
-        setError('Failed to load schedule data');
-        setCourts([
-          'Soccer Field 1',
-          'Basketball Court 1',
-          'Basketball Court 2',
-          'Tennis Court 1',
-          'Volleyball Court',
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fallbackCourts = [
+    "Soccer Field 1",
+    "Basketball Court 1",
+    "Basketball Court 2",
+    "Tennis Court 1",
+    "Volleyball Court",
+  ];
 
-    loadScheduleData();
-  }, [currentDate]);
+  const bookings = data?.bookings ?? [];
+  const courts = data?.courts?.length ? data.courts : fallbackCourts;
+  const errorMessage = error ? "Failed to load schedule data" : null;
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
   const navigateDay = (direction) => {
     const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
+    newDate.setDate(newDate.getDate() + (direction === "next" ? 1 : -1));
     setCurrentDate(newDate);
   };
 
   const getBookingWidth = (startTime, endTime) => {
-    const start = parseInt(startTime.split(':')[0]);
-    const end = parseInt(endTime.split(':')[0]);
+    const start = parseInt(startTime.split(":")[0]);
+    const end = parseInt(endTime.split(":")[0]);
     return end - start;
   };
 
   const getBookingPosition = (startTime) => {
-    const hour = parseInt(startTime.split(':')[0]);
+    const hour = parseInt(startTime.split(":")[0]);
     return hour - 8; // 8 AM is position 0
   };
 
   const getStatusColor = (status) => {
-    return 'bg-green-500 border-green-600 text-white';
+    return "bg-green-500 border-green-600 text-white";
   };
+
+  if (isLoading) {
+    return <ScheduleSkeleton />;
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -94,7 +81,7 @@ export function MasterSchedule() {
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigateDay('prev')}
+            onClick={() => navigateDay("prev")}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />
@@ -106,7 +93,7 @@ export function MasterSchedule() {
           </div>
 
           <button
-            onClick={() => navigateDay('next')}
+            onClick={() => navigateDay("next")}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ChevronRight className="w-5 h-5 text-gray-600" />
@@ -134,13 +121,9 @@ export function MasterSchedule() {
 
       {/* Schedule Grid */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 overflow-x-auto">
-        {loading ? (
+        {errorMessage ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">Loading schedule...</p>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-500">{error}</p>
+            <p className="text-red-500">{errorMessage}</p>
           </div>
         ) : (
           <div className="min-w-[1200px]">
@@ -184,7 +167,10 @@ export function MasterSchedule() {
                     {/* Bookings */}
                     {courtBookings.map((booking) => {
                       const position = getBookingPosition(booking.startTime);
-                      const width = getBookingWidth(booking.startTime, booking.endTime);
+                      const width = getBookingWidth(
+                        booking.startTime,
+                        booking.endTime,
+                      );
                       const widthPercent = (width / hours.length) * 100;
                       const leftPercent = (position / hours.length) * 100;
 
@@ -214,4 +200,3 @@ export function MasterSchedule() {
     </div>
   );
 }
-

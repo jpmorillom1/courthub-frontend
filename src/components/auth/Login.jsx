@@ -1,25 +1,38 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageWithFallback } from "../common/ImageWithFallback";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../store/authStore";
+
+const loginSchema = z.object({
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, startGoogleOAuth } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const [error, setError] = useState("");
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setError("");
-    setLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await login(data.email, data.password);
       if (result.success) {
         navigate("/dashboard");
       } else {
@@ -27,14 +40,7 @@ export function Login() {
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const handleGoogle = () => {
-    // start OAuth flow
-    if (typeof startGoogleOAuth === "function") startGoogleOAuth();
   };
 
   return (
@@ -69,7 +75,7 @@ export function Login() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Email */}
             <div>
               <label
@@ -85,13 +91,16 @@ export function Login() {
                 <input
                   id="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu.email@uce.edu.ec"
-                  required
+                  {...registerField("email")}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
                 />
               </div>
+              {errors.email?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Password */}
@@ -109,50 +118,25 @@ export function Login() {
                 <input
                   id="password"
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  required
+                  {...registerField("password")}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
                 />
               </div>
-            </div>
-
-            {/* Remember me & Forgot password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-[#cbab42] border-gray-300 rounded focus:ring-[#cbab42]"
-                />
-                <span className="text-sm text-gray-700">Remember me</span>
-              </label>
-              <Link
-                to="/forgot-password"
-                className="text-sm text-[#003f8f] hover:underline"
-              >
-                Forgot password?
-              </Link>
+              {errors.password?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={isSubmitting}
               className="w-full py-3 bg-[#cbab42] hover:bg-[#b89935] text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
-
-            {/* Google login button */}
-            <button
-              type="button"
-              onClick={handleGoogle}
-              className="w-full py-3 bg-white border border-gray-300 text-gray-800 rounded-lg transition-colors hover:bg-gray-50"
-            >
-              Continue with Google
+              {isSubmitting ? "Signing in..." : "Sign in"}
             </button>
 
             {/* Register Link */}

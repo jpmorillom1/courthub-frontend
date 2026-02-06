@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../store/authStore";
 import {
   getNotificationReport,
   formatNotificationTime,
@@ -17,6 +17,7 @@ import {
   Bell,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { NotificationPageSkeleton } from "../common/skeletons/NotificationSkeleton";
 
 export function NotificationsPage() {
   const { user } = useAuth();
@@ -60,12 +61,7 @@ export function NotificationsPage() {
   const filteredNotifications = getFilteredNotifications();
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <Loader className="w-8 h-8 text-primary animate-spin" />
-        <p className="text-sm text-gray-500">Loading notifications...</p>
-      </div>
-    );
+    return <NotificationPageSkeleton />;
   }
 
   return (

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   TrendingUp,
   Users,
@@ -6,7 +5,7 @@ import {
   Wrench,
   Award,
   CheckCircle,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -19,51 +18,34 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-} from 'recharts';
-import { analyticsService } from '../../services/analyticsService';
+} from "recharts";
+import { DashboardSkeleton } from "../common/skeletons/DashboardSkeleton";
+import { useDashboardData } from "../../hooks/queryHooks";
 
 export function Dashboard() {
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const data = await analyticsService.getDashboardData();
-        setDashboardData(data);
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
-        setError('Failed to load dashboard data. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  const { data: dashboardData, isLoading, error } = useDashboardData();
 
   const getHeatColor = (value, maxValue = 10) => {
-    if (maxValue === 0) return 'bg-gray-100';
-    
+    if (maxValue === 0) return "bg-gray-100";
+
     const percentage = (value / maxValue) * 100;
-    
-    if (percentage >= 80) return 'bg-[#003f8f] text-white';
-    if (percentage >= 60) return 'bg-[#1e5ba8] text-white';
-    if (percentage >= 40) return 'bg-[#cbab42] text-gray-900';
-    if (percentage >= 20) return 'bg-blue-300 text-gray-900';
-    if (percentage >= 10) return 'bg-blue-200 text-gray-900';
-    if (percentage > 0) return 'bg-blue-100 text-gray-900';
-    return 'bg-gray-100 text-gray-900';
+
+    if (percentage >= 80) return "bg-[#003f8f] text-white";
+    if (percentage >= 60) return "bg-[#1e5ba8] text-white";
+    if (percentage >= 40) return "bg-[#cbab42] text-gray-900";
+    if (percentage >= 20) return "bg-blue-300 text-gray-900";
+    if (percentage >= 10) return "bg-blue-200 text-gray-900";
+    if (percentage > 0) return "bg-blue-100 text-gray-900";
+    return "bg-gray-100 text-gray-900";
   };
 
   const getMaxHeatmapValue = () => {
     if (!heatmapData || heatmapData.length === 0) return 0;
-    
+
     let max = 0;
-    heatmapData.forEach(day => {
+    heatmapData.forEach((day) => {
       Object.entries(day).forEach(([key, value]) => {
-        if (key !== 'day' && typeof value === 'number') {
+        if (key !== "day" && typeof value === "number") {
           max = Math.max(max, value);
         }
       });
@@ -73,9 +55,9 @@ export function Dashboard() {
 
   const getKPIs = () => {
     if (!dashboardData?.kpis) return [];
-    
+
     const { kpis } = dashboardData;
-    
+
     return [
       {
         title: "Occupation Rate",
@@ -115,12 +97,8 @@ export function Dashboard() {
     ];
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center h-full">
-        <p className="text-gray-500">Loading dashboard...</p>
-      </div>
-    );
+  if (isLoading) {
+    return <DashboardSkeleton />;
   }
 
   if (error) {
@@ -129,7 +107,9 @@ export function Dashboard() {
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-gray-900 mb-2">Error loading dashboard</p>
-          <p className="text-gray-600">{error}</p>
+          <p className="text-gray-600">
+            Failed to load dashboard data. Please try again later.
+          </p>
         </div>
       </div>
     );
@@ -146,9 +126,11 @@ export function Dashboard() {
   const kpiData = getKPIs();
   const facultyData = dashboardData.facultyUsage || [];
   const reservationData = dashboardData.reservationsHistory || [];
-  const heatmapData = Object.entries(dashboardData.heatmap?.dayHourMatrix || {}).map(([day, hours]) => ({
+  const heatmapData = Object.entries(
+    dashboardData.heatmap?.dayHourMatrix || {},
+  ).map(([day, hours]) => ({
     day: day.charAt(0).toUpperCase() + day.slice(1).toLowerCase(),
-    ...hours
+    ...hours,
   }));
   const topStudentsData = dashboardData.topActiveStudents || [];
 
@@ -189,17 +171,24 @@ export function Dashboard() {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ faculty, bookingCount }) => `${faculty}: ${bookingCount}`}
+                label={({ faculty, bookingCount }) =>
+                  `${faculty}: ${bookingCount}`
+                }
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="bookingCount"
                 nameKey="faculty"
               >
                 {facultyData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color || '#8884d8'} />
+                  <Cell key={`cell-${index}`} fill={entry.color || "#8884d8"} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value, name, props) => [`${value} bookings`, props.payload.faculty]} />
+              <Tooltip
+                formatter={(value, name, props) => [
+                  `${value} bookings`,
+                  props.payload.faculty,
+                ]}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -212,23 +201,35 @@ export function Dashboard() {
               <div className="inline-block min-w-full">
                 {(() => {
                   const maxValue = getMaxHeatmapValue();
-                  const hours = heatmapData[0] ? Object.keys(heatmapData[0]).filter(key => key !== 'day').sort((a, b) => {
-                    return parseInt(a.split(':')[0]) - parseInt(b.split(':')[0]);
-                  }) : [];
-                  
+                  const hours = heatmapData[0]
+                    ? Object.keys(heatmapData[0])
+                        .filter((key) => key !== "day")
+                        .sort((a, b) => {
+                          return (
+                            parseInt(a.split(":")[0]) -
+                            parseInt(b.split(":")[0])
+                          );
+                        })
+                    : [];
+
                   return (
                     <>
                       <div className="flex gap-2 mb-2">
                         <div className="w-16"></div>
                         {hours.map((hour) => (
-                          <div key={hour} className="w-16 text-center text-xs text-gray-600">
+                          <div
+                            key={hour}
+                            className="w-16 text-center text-xs text-gray-600"
+                          >
                             {hour}
                           </div>
                         ))}
                       </div>
                       {heatmapData.map((row) => (
                         <div key={row.day} className="flex gap-2 mb-2">
-                          <div className="w-16 text-sm text-gray-600 flex items-center font-medium">{row.day.substring(0, 3)}</div>
+                          <div className="w-16 text-sm text-gray-600 flex items-center font-medium">
+                            {row.day.substring(0, 3)}
+                          </div>
                           {hours.map((hour) => (
                             <div
                               key={hour}
@@ -268,44 +269,63 @@ export function Dashboard() {
               </div>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No heatmap data available</p>
+            <p className="text-gray-500 text-center py-8">
+              No heatmap data available
+            </p>
           )}
         </div>
       </div>
 
       {/* Reservations Chart */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-gray-900 mb-4">Completed Reservations vs Cancellations</h3>
+        <h3 className="text-gray-900 mb-4">
+          Completed Reservations vs Cancellations
+        </h3>
         {reservationData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={reservationData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="month" 
+              <XAxis
+                dataKey="month"
                 stroke="#666"
                 tickFormatter={(value, index) => {
                   const item = reservationData[index];
-                  return item ? `${value} '${String(item.year).slice(-2)}` : value;
+                  return item
+                    ? `${value} '${String(item.year).slice(-2)}`
+                    : value;
                 }}
               />
               <YAxis stroke="#666" />
-              <Tooltip 
+              <Tooltip
                 formatter={(value, name) => {
-                  const label = name === 'completedCount' ? 'Completed' : 'Cancelled';
+                  const label =
+                    name === "completedCount" ? "Completed" : "Cancelled";
                   return [value, label];
                 }}
               />
-              <Legend 
+              <Legend
                 formatter={(value) => {
-                  return value === 'completedCount' ? 'Completed' : 'Cancelled';
+                  return value === "completedCount" ? "Completed" : "Cancelled";
                 }}
               />
-              <Bar dataKey="completedCount" fill="#10b981" name="completedCount" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="cancelledCount" fill="#ef4444" name="cancelledCount" radius={[8, 8, 0, 0]} />
+              <Bar
+                dataKey="completedCount"
+                fill="#10b981"
+                name="completedCount"
+                radius={[8, 8, 0, 0]}
+              />
+              <Bar
+                dataKey="cancelledCount"
+                fill="#ef4444"
+                name="cancelledCount"
+                radius={[8, 8, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-gray-500 text-center py-12">No reservation data available</p>
+          <p className="text-gray-500 text-center py-12">
+            No reservation data available
+          </p>
         )}
       </div>
 
@@ -320,18 +340,35 @@ export function Dashboard() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-2 text-sm text-gray-600">Student</th>
-                  <th className="text-left py-3 px-2 text-sm text-gray-600">Faculty</th>
-                  <th className="text-center py-3 px-2 text-sm text-gray-600">Bookings</th>
-                  <th className="text-center py-3 px-2 text-sm text-gray-600">Hours</th>
-                  <th className="text-center py-3 px-2 text-sm text-gray-600">Attendance</th>
+                  <th className="text-left py-3 px-2 text-sm text-gray-600">
+                    Student
+                  </th>
+                  <th className="text-left py-3 px-2 text-sm text-gray-600">
+                    Faculty
+                  </th>
+                  <th className="text-center py-3 px-2 text-sm text-gray-600">
+                    Bookings
+                  </th>
+                  <th className="text-center py-3 px-2 text-sm text-gray-600">
+                    Hours
+                  </th>
+                  <th className="text-center py-3 px-2 text-sm text-gray-600">
+                    Attendance
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {topStudentsData.map((student, index) => (
-                  <tr key={student.userId || index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-2 text-sm text-gray-900">{student.userName}</td>
-                    <td className="py-3 px-2 text-sm text-gray-600">{student.faculty}</td>
+                  <tr
+                    key={student.userId || index}
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    <td className="py-3 px-2 text-sm text-gray-900">
+                      {student.userName}
+                    </td>
+                    <td className="py-3 px-2 text-sm text-gray-600">
+                      {student.faculty}
+                    </td>
                     <td className="py-3 px-2 text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 bg-[#cbab42]/10 text-[#cbab42] rounded-full">
                         {student.totalBookings}
@@ -349,10 +386,11 @@ export function Dashboard() {
             </table>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-8">No student data available</p>
+          <p className="text-gray-500 text-center py-8">
+            No student data available
+          </p>
         )}
       </div>
     </div>
   );
 }
-

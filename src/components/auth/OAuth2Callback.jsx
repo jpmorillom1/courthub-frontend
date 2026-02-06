@@ -2,9 +2,14 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../../services/authService";
 import { userService } from "../../services/userService";
+import { useAuthStore } from "../../store/authStore";
 
 export function OAuth2Callback() {
   const navigate = useNavigate();
+  const setUser = useAuthStore((state) => state.setUser);
+  const syncUserFromStorage = useAuthStore(
+    (state) => state.syncUserFromStorage,
+  );
 
   useEffect(() => {
     const handle = async () => {
@@ -22,12 +27,18 @@ export function OAuth2Callback() {
           try {
             const profile = await userService.getCurrentUserProfile();
             localStorage.setItem("user", JSON.stringify(profile));
+            setUser(profile);
           } catch (err) {
             // fallback: try to let authService.oauthLogin (server-side) get profile
             try {
-              await authService.oauthLogin();
+              const result = await authService.oauthLogin();
+              if (result?.user) {
+                setUser(result.user);
+              } else {
+                syncUserFromStorage();
+              }
             } catch (e) {
-              // ignore
+              syncUserFromStorage();
             }
           }
           navigate("/dashboard");
@@ -36,7 +47,12 @@ export function OAuth2Callback() {
 
         // If tokens not present in URL, call backend endpoint to finalize oauth login
         try {
-          await authService.oauthLogin();
+          const result = await authService.oauthLogin();
+          if (result?.user) {
+            setUser(result.user);
+          } else {
+            syncUserFromStorage();
+          }
           navigate("/dashboard");
         } catch (err) {
           console.error("OAuth2 login failed", err);

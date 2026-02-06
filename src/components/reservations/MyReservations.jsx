@@ -1,28 +1,17 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, MapPin, Eye } from "lucide-react";
-import { bookingService } from "../../services/bookingService";
+import { ReservationListSkeleton } from "../common/skeletons/ReservationCardSkeleton";
+import { useMyReservations } from "../../hooks/queryHooks";
 
 export function MyReservations() {
-  const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadReservations = async () => {
-      try {
-        const userStr = localStorage.getItem("user");
-        const user = userStr ? JSON.parse(userStr) : null;
-        const data = await bookingService.getMyReservations(user?.id || "2");
-        setReservations(data);
-      } catch (error) {
-        console.error("Error loading reservations:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadReservations();
+  const userId = useMemo(() => {
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    return user?.id || "2";
   }, []);
+
+  const { data: reservations = [], isLoading } = useMyReservations(userId);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -46,11 +35,11 @@ export function MyReservations() {
   const isReservationPast = (reservation) => {
     const [year, month, day] = reservation.date.split("-").map(Number);
     const [hours, minutes] = reservation.time.split(":").map(Number);
-    
+
     const reservationDate = new Date(year, month - 1, day, hours, minutes);
     const endDate = new Date(reservationDate);
     endDate.setHours(endDate.getHours() + reservation.duration);
-    
+
     return endDate < new Date();
   };
 
@@ -92,20 +81,38 @@ export function MyReservations() {
   };
 
   const validReservations = reservations.filter(
-    (r) => r.status !== "pending_payment" && r.status !== "payment_failed"
+    (r) => r.status !== "pending_payment" && r.status !== "payment_failed",
   );
 
   const upcomingReservations = validReservations.filter(
-    (r) => r.status === "confirmed" && !isReservationPast(r)
+    (r) => r.status === "confirmed" && !isReservationPast(r),
   );
   const pastReservations = validReservations.filter(
-    (r) => r.status === "cancelled" || (r.status === "confirmed" && isReservationPast(r))
+    (r) =>
+      r.status === "cancelled" ||
+      (r.status === "confirmed" && isReservationPast(r)),
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center h-full">
-        <p className="text-gray-500">Loading reservations...</p>
+      <div className="p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div className="h-4 w-64 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="h-12 w-40 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        <div>
+          <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+          <ReservationListSkeleton count={3} />
+        </div>
+
+        <div>
+          <div className="h-6 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
+          <ReservationListSkeleton count={2} />
+        </div>
       </div>
     );
   }

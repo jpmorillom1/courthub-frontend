@@ -34,6 +34,13 @@ const parseJwt = (token) => {
   }
 };
 
+const isTokenExpired = (token, clockSkewSeconds = 30) => {
+  const payload = parseJwt(token);
+  if (!payload || !payload.exp) return true;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return payload.exp <= nowSeconds + clockSkewSeconds;
+};
+
 export const authService = {
   /**
    * Login with email and password
@@ -228,7 +235,23 @@ export const authService = {
    * @returns {boolean} True if access token exists
    */
   isAuthenticated() {
-    return !!localStorage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken");
+    if (!token) return false;
+    if (isTokenExpired(token)) {
+      clearTokens();
+      return false;
+    }
+    return true;
+  },
+
+  /**
+   * Check if access token exists and is not expired (no side effects)
+   * @returns {boolean}
+   */
+  hasValidAccessToken() {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return false;
+    return !isTokenExpired(token);
   },
 
   /**

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell, X, Loader, AlertCircle } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../store/authStore";
 import { cn } from "../../lib/utils"; // Importing the project's utility
 import {
   getNotificationReport,

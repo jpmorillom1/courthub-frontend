@@ -4,7 +4,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { useAuth } from "./store/authStore";
+import { AuthInitializer } from "./store/AuthInitializer";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 import { Login } from "./components/auth/Login";
@@ -23,11 +24,28 @@ import { UserProfile } from "./components/user/UserProfile";
 import { NotificationsPage } from "./components/notifications/NotificationsPage";
 import { PaymentSuccess } from "./components/booking/PaymentSuccess";
 import { PaymentCancel } from "./components/booking/PaymentCancel";
+import { userService } from "./services/userService";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./App.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
+
+function HomeRedirect() {
+  const { user } = useAuth();
+  const isAdmin = userService.isAdmin(user) || user?.role === "ADMIN";
+  return <Navigate to={isAdmin ? "/dashboard" : "/booking"} replace />;
+}
 
 function App() {
   return (
-    <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthInitializer />
       <Router>
         <Routes>
           {/* Auth routes - no layout */}
@@ -41,7 +59,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <Layout>
-                  <Navigate to="/dashboard" replace />
+                  <HomeRedirect />
                 </Layout>
               </ProtectedRoute>
             }
@@ -49,7 +67,7 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={["ADMIN"]}>
                 <Layout>
                   <Dashboard />
                 </Layout>
@@ -59,7 +77,7 @@ function App() {
           <Route
             path="/schedule"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={["ADMIN"]}>
                 <Layout>
                   <MasterSchedule />
                 </Layout>
@@ -109,7 +127,7 @@ function App() {
           <Route
             path="/reports"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={["ADMIN"]}>
                 <Layout>
                   <AdminReports />
                 </Layout>
@@ -119,7 +137,7 @@ function App() {
           <Route
             path="/users"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={["ADMIN"]}>
                 <Layout>
                   <UserList />
                 </Layout>
@@ -129,7 +147,7 @@ function App() {
           <Route
             path="/admin/manual-booking"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={["ADMIN"]}>
                 <Layout>
                   <AddManualBooking />
                 </Layout>
@@ -176,7 +194,7 @@ function App() {
           />
         </Routes>
       </Router>
-    </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

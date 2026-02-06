@@ -14,14 +14,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const init = async () => {
       try {
-        const localUser = authService.getCurrentUser();
-        if (localUser) {
-          setUser(localUser);
-          setLoading(false);
-          return;
-        }
-
         if (authService.isAuthenticated()) {
+          const localUser = authService.getCurrentUser();
+          if (localUser) {
+            setUser(localUser);
+            setLoading(false);
+            return;
+          }
           try {
             const profile = await userService.getCurrentUserProfile();
             localStorage.setItem("user", JSON.stringify(profile));
@@ -40,6 +39,20 @@ export function AuthProvider({ children }) {
     };
 
     init();
+  }, []);
+
+  useEffect(() => {
+    const checkSession = () => {
+      const token = localStorage.getItem("accessToken");
+      if (token && !authService.isAuthenticated()) {
+        authService.logout();
+        setUser(null);
+      }
+    };
+
+    checkSession();
+    const intervalId = window.setInterval(checkSession, 60 * 1000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const login = async (email, password) => {
@@ -77,7 +90,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
-    isAuthenticated: !!user,
+    isAuthenticated: authService.hasValidAccessToken(),
     loading,
     startGoogleOAuth,
   };
