@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, MapPin, ArrowLeft, AlertCircle } from "lucide-react";
 import { bookingService } from "../../services/bookingService";
+import { DetailSkeleton } from "../common/skeletons/DetailSkeleton";
 
 export function ReservationDetail() {
   const { id } = useParams();
@@ -52,20 +53,20 @@ export function ReservationDetail() {
 
   const isReservationPast = () => {
     if (!reservation) return false;
-    
+
     const [year, month, day] = reservation.date.split("-").map(Number);
     const [hours, minutes] = reservation.time.split(":").map(Number);
-    
+
     const reservationDate = new Date(year, month - 1, day, hours, minutes);
     const endDate = new Date(reservationDate);
     endDate.setHours(endDate.getHours() + reservation.duration);
-    
+
     return endDate < new Date();
   };
 
   const getStatusBadge = (status) => {
     const isPast = isReservationPast();
-    
+
     switch (status) {
       case "confirmed":
         return (
@@ -85,11 +86,7 @@ export function ReservationDetail() {
   };
 
   if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center h-full">
-        <p className="text-gray-500">Loading reservation details...</p>
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (!reservation) {
@@ -195,7 +192,9 @@ export function ReservationDetail() {
                 <button
                   onClick={async () => {
                     if (
-                      confirm("Are you sure you want to cancel this reservation?")
+                      confirm(
+                        "Are you sure you want to cancel this reservation?",
+                      )
                     ) {
                       try {
                         await bookingService.cancelReservation(reservation.id);
