@@ -1,29 +1,17 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, MapPin, Eye } from "lucide-react";
-import { bookingService } from "../../services/bookingService";
 import { ReservationListSkeleton } from "../common/skeletons/ReservationCardSkeleton";
+import { useMyReservations } from "../../hooks/queryHooks";
 
 export function MyReservations() {
-  const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadReservations = async () => {
-      try {
-        const userStr = localStorage.getItem("user");
-        const user = userStr ? JSON.parse(userStr) : null;
-        const data = await bookingService.getMyReservations(user?.id || "2");
-        setReservations(data);
-      } catch (error) {
-        console.error("Error loading reservations:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadReservations();
+  const userId = useMemo(() => {
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    return user?.id || "2";
   }, []);
+
+  const { data: reservations = [], isLoading } = useMyReservations(userId);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -105,7 +93,7 @@ export function MyReservations() {
       (r.status === "confirmed" && isReservationPast(r)),
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-6 space-y-6">
         <div className="flex justify-between items-center">

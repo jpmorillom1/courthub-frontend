@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   TrendingUp,
   Users,
@@ -20,29 +19,11 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { analyticsService } from "../../services/analyticsService";
 import { DashboardSkeleton } from "../common/skeletons/DashboardSkeleton";
+import { useDashboardData } from "../../hooks/queryHooks";
 
 export function Dashboard() {
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const data = await analyticsService.getDashboardData();
-        setDashboardData(data);
-      } catch (error) {
-        console.error("Error loading dashboard data:", error);
-        setError("Failed to load dashboard data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  const { data: dashboardData, isLoading, error } = useDashboardData();
 
   const getHeatColor = (value, maxValue = 10) => {
     if (maxValue === 0) return "bg-gray-100";
@@ -116,7 +97,7 @@ export function Dashboard() {
     ];
   };
 
-  if (loading) {
+  if (isLoading) {
     return <DashboardSkeleton />;
   }
 
@@ -126,7 +107,9 @@ export function Dashboard() {
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-gray-900 mb-2">Error loading dashboard</p>
-          <p className="text-gray-600">{error}</p>
+          <p className="text-gray-600">
+            Failed to load dashboard data. Please try again later.
+          </p>
         </div>
       </div>
     );

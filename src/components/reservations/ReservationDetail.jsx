@@ -1,31 +1,22 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, MapPin, ArrowLeft, AlertCircle } from "lucide-react";
-import { bookingService } from "../../services/bookingService";
 import { DetailSkeleton } from "../common/skeletons/DetailSkeleton";
+import {
+  useCancelReservation,
+  useReservationDetail,
+} from "../../hooks/queryHooks";
 
 export function ReservationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [reservation, setReservation] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadReservation = async () => {
-      try {
-        const data = await bookingService.getReservationById(id);
-        setReservation(data);
-      } catch (error) {
-        console.error("Error loading reservation:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      loadReservation();
-    }
-  }, [id]);
+  const { data: reservation, isLoading } = useReservationDetail(id);
+  const cancelReservation = useCancelReservation();
+  const userId = useMemo(() => {
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    return user?.id || "2";
+  }, []);
 
   const formatDate = (dateStr) => {
     const [year, month, day] = dateStr.split("-").map(Number);
@@ -85,7 +76,7 @@ export function ReservationDetail() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <DetailSkeleton />;
   }
 
@@ -197,7 +188,10 @@ export function ReservationDetail() {
                       )
                     ) {
                       try {
-                        await bookingService.cancelReservation(reservation.id);
+                        await cancelReservation.mutateAsync({
+                          id: reservation.id,
+                          userId,
+                        });
                         navigate("/reservations");
                       } catch (error) {
                         alert("Error cancelling reservation: " + error.message);

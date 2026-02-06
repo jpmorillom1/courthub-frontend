@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
 } from "lucide-react";
-import { bookingService } from "../../services/bookingService";
 import { ScheduleSkeleton } from "../common/skeletons/ScheduleSkeleton";
+import { useMasterScheduleData } from "../../hooks/queryHooks";
 
 const hours = [
   "08:00",
@@ -27,46 +27,19 @@ const hours = [
 
 export function MasterSchedule() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [bookings, setBookings] = useState([]);
-  const [courts, setCourts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data, isLoading, error } = useMasterScheduleData(currentDate);
 
-  useEffect(() => {
-    const loadScheduleData = async () => {
-      try {
-        setLoading(true);
-        const { bookings: loadedBookings, courts: loadedCourts } =
-          await bookingService.getMasterScheduleData(currentDate);
-        setBookings(loadedBookings);
-        setCourts(
-          loadedCourts.length > 0
-            ? loadedCourts
-            : [
-                "Soccer Field 1",
-                "Basketball Court 1",
-                "Basketball Court 2",
-                "Tennis Court 1",
-                "Volleyball Court",
-              ],
-        );
-      } catch (err) {
-        console.error("Error loading schedule data:", err);
-        setError("Failed to load schedule data");
-        setCourts([
-          "Soccer Field 1",
-          "Basketball Court 1",
-          "Basketball Court 2",
-          "Tennis Court 1",
-          "Volleyball Court",
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fallbackCourts = [
+    "Soccer Field 1",
+    "Basketball Court 1",
+    "Basketball Court 2",
+    "Tennis Court 1",
+    "Volleyball Court",
+  ];
 
-    loadScheduleData();
-  }, [currentDate]);
+  const bookings = data?.bookings ?? [];
+  const courts = data?.courts?.length ? data.courts : fallbackCourts;
+  const errorMessage = error ? "Failed to load schedule data" : null;
 
   const formatDate = (date) => {
     return date.toLocaleDateString("en-US", {
@@ -98,7 +71,7 @@ export function MasterSchedule() {
     return "bg-green-500 border-green-600 text-white";
   };
 
-  if (loading) {
+  if (isLoading) {
     return <ScheduleSkeleton />;
   }
 
@@ -148,9 +121,9 @@ export function MasterSchedule() {
 
       {/* Schedule Grid */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 overflow-x-auto">
-        {error ? (
+        {errorMessage ? (
           <div className="text-center py-12">
-            <p className="text-red-500">{error}</p>
+            <p className="text-red-500">{errorMessage}</p>
           </div>
         ) : (
           <div className="min-w-[1200px]">
