@@ -1,18 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
-import { reportService } from '../../services/reportService';
+import { courtIssueService } from '../../services/courtIssueService';
+import api, { API_ENDPOINTS } from '../../services/api';
 
 export function ReportIssue() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    issue: '',
+    title: '',
     description: '',
-    severity: 'Low',
+    severity: 'MEDIUM',
   });
   const [loading, setLoading] = useState(false);
+  const [loadingReservation, setLoadingReservation] = useState(true);
   const [error, setError] = useState('');
+  const [courtId, setCourtId] = useState(null);
+  const [reservation, setReservation] = useState(null);
+
+  // Load reservation to get courtId
+  useEffect(() => {
+    const loadReservation = async () => {
+      try {
+        const { data } = await api.get(API_ENDPOINTS.BOOKINGS_GET_BY_ID(id));
+        setReservation(data);
+        setCourtId(data.courtId);
+      } catch (err) {
+        console.error('Error loading reservation:', err);
+        setError('Error loading reservation details');
+      } finally {
+        setLoadingReservation(false);
+      }
+    };
+
+    if (id) {
+      loadReservation();
+    }
+  }, [id]);
 
   const handleChange = (e) => {
     setFormData({
@@ -23,18 +47,18 @@ export function ReportIssue() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!courtId) {
+      setError('Court information not available');
+      return;
+    }
+
     setError('');
     setLoading(true);
 
     try {
-      const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
-
-      await reportService.createReport({
-        reservationId: id,
-        userId: user?.id || '2',
-        courtName: 'Court Name', // You might want to fetch this from reservation
-        issue: formData.issue,
+      await courtIssueService.reportIssue(courtId, {
+        title: formData.title,
         description: formData.description,
         severity: formData.severity,
       });
@@ -42,11 +66,40 @@ export function ReportIssue() {
       alert('Issue reported successfully!');
       navigate(`/reservations/${id}`);
     } catch (err) {
-      setError('Error reporting issue: ' + err.message);
+      setError('Error reporting issue: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingReservation) {
+    return (
+      <div className="p-6 flex items-center justify-center h-full">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!courtId) {
+    return (
+      <div className="p-6">
+        <div className="bg-white rounded-xl p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-gray-900 mb-2">Unable to load reservation</h3>
+          <p className="text-gray-600 mb-6">
+            Could not find the court information for this reservation.
+          </p>
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#003f8f] hover:bg-[#002f6f] text-white rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -74,14 +127,14 @@ export function ReportIssue() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Issue Title */}
             <div>
-              <label htmlFor="issue" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                 Issue Title
               </label>
               <input
-                id="issue"
-                name="issue"
+                id="title"
+                name="title"
                 type="text"
-                value={formData.issue}
+                value={formData.title}
                 onChange={handleChange}
                 placeholder="e.g., Broken net on south basket"
                 required
@@ -118,9 +171,10 @@ export function ReportIssue() {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
               >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
               </select>
             </div>
 

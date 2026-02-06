@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Calendar,
@@ -8,20 +8,22 @@ import {
   Users,
   BarChart3,
   Settings,
-  Bell,
   Menu,
   X,
-} from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+  Bell,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { NotificationsPanel } from "./common/NotificationsPanel";
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Master Schedule', href: '/schedule', icon: Calendar },
-  { name: 'Book', href: '/booking', icon: CalendarPlus },
-  { name: 'Reservations', href: '/reservations', icon: ClipboardList },
-  { name: 'Users', href: '/users', icon: Users },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Master Schedule", href: "/schedule", icon: Calendar },
+  { name: "Book", href: "/booking", icon: CalendarPlus },
+  { name: "Reservations", href: "/reservations", icon: ClipboardList },
+  { name: "Notifications", href: "/notifications", icon: Bell },
+  { name: "Users", href: "/users", icon: Users },
+  { name: "Reports", href: "/reports", icon: BarChart3 },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function Layout({ children }) {
@@ -32,25 +34,37 @@ export function Layout({ children }) {
   const getPageTitle = () => {
     const path = location.pathname;
     const state = location.state;
-    if (path.includes('/reservations/') && path.includes('/report')) return 'Report an Issue';
-    if (path.includes('/reservations/')) return 'Reservation Details';
-    if (path === '/reservations') return 'My Reservations';
-    if (path === '/dashboard') return 'Analytics Dashboard';
-    if (path === '/schedule') return 'Master Schedule';
-    if (path === '/booking') return 'Book a Facility';
-    if (path === '/reports') return 'Reports & Issues';
-    if (path === '/users') return 'User Management';
-    if (path === '/admin/manual-booking') {
-      return state?.bookingId || state?.bookingData ? 'Edit Booking' : 'Add Manual Booking';
+    if (path.includes("/reservations/") && path.includes("/report"))
+      return "Report an Issue";
+    if (path.includes("/reservations/")) return "Reservation Details";
+    if (path === "/reservations") return "My Reservations";
+    if (path === "/notifications") return "Notifications";
+    if (path === "/dashboard") return "Analytics Dashboard";
+    if (path === "/schedule") return "Master Schedule";
+    if (path === "/booking") return "Book a Facility";
+    if (path === "/reports") return "Reports & Issues";
+    if (path === "/users") return "User Management";
+    if (path === "/admin/manual-booking") {
+      return state?.bookingId || state?.bookingData
+        ? "Edit Booking"
+        : "Add Manual Booking";
     }
-    if (path === '/settings') return 'Settings';
-    return 'Dashboard';
+    if (path === "/settings") return "Settings";
+    return "Dashboard";
   };
 
   const getUserInitials = () => {
-    if (!user) return 'U';
-    const names = user.name.split(' ');
-    return names.length > 1 ? `${names[0][0]}${names[1][0]}` : names[0][0];
+    if (!user) return "U";
+    const name = (user.name || "").trim();
+    if (name) {
+      const names = name.split(/\s+/);
+      return names.length > 1 ? `${names[0][0]}${names[1][0]}` : names[0][0];
+    }
+    if (user.email) {
+      const local = user.email.split("@")[0];
+      return local ? local[0].toUpperCase() : "U";
+    }
+    return "U";
   };
 
   return (
@@ -69,7 +83,7 @@ export function Layout({ children }) {
           fixed top-0 left-0 z-50 h-full w-64 bg-[#003f8f] text-white
           transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         <div className="flex h-full flex-col">
@@ -84,8 +98,10 @@ export function Layout({ children }) {
                 />
               </div>
               <div>
-                <h3 className="text-white">SportHub</h3>
-                <p className="text-xs text-white/60">Universidad Central del Ecuador</p>
+                <h3 className="text-white">CourtHub</h3>
+                <p className="text-xs text-white/60">
+                  Universidad Central del Ecuador
+                </p>
               </div>
             </div>
             <button
@@ -110,8 +126,8 @@ export function Layout({ children }) {
                     transition-all duration-200
                     ${
                       isActive
-                        ? 'bg-[#cbab42] text-[#003f8f]'
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        ? "bg-[#cbab42] text-[#003f8f]"
+                        : "text-white/80 hover:bg-white/10 hover:text-white"
                     }
                   `}
                 >
@@ -126,11 +142,17 @@ export function Layout({ children }) {
           <div className="px-6 py-4 border-t border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#cbab42] rounded-full flex items-center justify-center">
-                <span className="text-[#003f8f] font-semibold">{getUserInitials()}</span>
+                <span className="text-[#003f8f] font-semibold">
+                  {getUserInitials()}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-white truncate">{user?.name || 'User'}</p>
-                <p className="text-xs text-white/60 truncate">{user?.email || 'user@uce.edu.ec'}</p>
+                <p className="text-sm text-white truncate">
+                  {user?.name || "User"}
+                </p>
+                <p className="text-xs text-white/60 truncate">
+                  {user?.email || "user@uce.edu.ec"}
+                </p>
               </div>
             </div>
           </div>
@@ -152,20 +174,21 @@ export function Layout({ children }) {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[#ef4444] rounded-full" />
-            </button>
+            <NotificationsPanel />
 
             <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
               <div className="text-right hidden sm:block">
-                <p className="text-sm text-gray-900">{user?.name || 'User'}</p>
+                <p className="text-sm text-gray-900">{user?.name || "User"}</p>
                 <p className="text-xs text-gray-500">
-                  {user?.studentId ? `Student ID: ${user.studentId}` : user?.role || 'User'}
+                  {user?.studentId
+                    ? `Student ID: ${user.studentId}`
+                    : user?.role || "User"}
                 </p>
               </div>
               <div className="w-10 h-10 bg-[#003f8f] rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold">{getUserInitials()}</span>
+                <span className="text-white font-semibold">
+                  {getUserInitials()}
+                </span>
               </div>
             </div>
           </div>
@@ -177,4 +200,3 @@ export function Layout({ children }) {
     </div>
   );
 }
-

@@ -1,39 +1,139 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Configuración base de axios
+/**
+ * API Gateway configuration
+ * All services communicate through the API Gateway at port 9000
+ */
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:9000";
+
+// Centralized endpoint routes
+export const API_ENDPOINTS = {
+  // Auth endpoints
+  AUTH_LOGIN: "/auth/login",
+  AUTH_REGISTER: "/auth/register",
+  AUTH_REFRESH: "/auth/refresh",
+  AUTH_LOGOUT: "/auth/logout",
+
+  // Courts endpoints
+  COURTS_GET_ALL: "/courts",
+  COURTS_GET_BY_ID: (id) => `/courts/${id}`,
+
+  // Users endpoints (registration & profile)
+  USERS_CREATE: "/users",
+
+  // Bookings endpoints
+  BOOKINGS_CREATE: "/bookings",
+  BOOKINGS_GET_USER: (userId) => `/bookings/user/${userId}`,
+  BOOKINGS_GET_BY_ID: (id) => `/bookings/${id}`,
+  BOOKINGS_CANCEL: (id) => `/bookings/${id}/cancel`,
+
+  // Payments endpoints
+  PAYMENTS_CHECKOUT: "/api/payments/checkout",
+  PAYMENTS_GET_BY_BOOKING: (bookingId) => `/api/payments/booking/${bookingId}`,
+  PAYMENTS_GET_USER: "/api/payments/user",
+
+  // Users endpoints
+  USERS_PROFILE: "/users/me",
+  USERS_GET_BY_ID: (id) => `/users/${id}`,
+
+  // Notifications endpoints
+  NOTIFICATIONS_GET_USER: (userId) => `/api/notifications/user/${userId}`,
+  NOTIFICATIONS_GET_REPORT: (userId) => `/api/notifications/report/${userId}`,
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  baseURL: API_BASE,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Interceptor para agregar token a las peticiones
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("accessToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error),
 );
 
-// Interceptor para manejar errores
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry
+    ) {
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.href = "/login";
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise(function (resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const resp = await axios.post(
+          `${API_BASE}${API_ENDPOINTS.AUTH_REFRESH}`,
+          { refreshToken },
+          { headers: { "Content-Type": "application/json" } },
+        );
+        const { accessToken, refreshToken: newRefresh } = resp.data || {};
+        if (accessToken) {
+          localStorage.setItem("accessToken", accessToken);
+        }
+        if (newRefresh) {
+          localStorage.setItem("refreshToken", newRefresh);
+        }
+        processQueue(null, accessToken);
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.href = "/login";
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
-

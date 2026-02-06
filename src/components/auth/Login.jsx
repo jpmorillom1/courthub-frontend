@@ -1,35 +1,40 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
-import { ImageWithFallback } from '../common/ImageWithFallback';
-import { useAuth } from '../../context/AuthContext';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock } from "lucide-react";
+import { ImageWithFallback } from "../common/ImageWithFallback";
+import { useAuth } from "../../context/AuthContext";
 
 export function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { login, startGoogleOAuth } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       const result = await login(email, password);
       if (result.success) {
-        navigate('/dashboard');
+        navigate("/dashboard");
       } else {
-        setError(result.error || 'Invalid email or password');
+        setError(result.error || "Invalid email or password");
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogle = () => {
+    // start OAuth flow
+    if (typeof startGoogleOAuth === "function") startGoogleOAuth();
   };
 
   return (
@@ -48,8 +53,12 @@ export function Login() {
 
           {/* Title centered */}
           <div className="mb-6 text-center">
-            <h1 className="text-[#003f8f] text-2xl font-semibold mb-2">Sign in</h1>
-            <p className="text-gray-600">Welcome back! Please enter your details.</p>
+            <h1 className="text-[#003f8f] text-2xl font-semibold mb-2">
+              Sign in
+            </h1>
+            <p className="text-gray-600">
+              Welcome back! Please enter your details.
+            </p>
           </div>
 
           {/* Error message */}
@@ -63,7 +72,10 @@ export function Login() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm text-gray-700 mb-2"
+              >
                 Email
               </label>
               <div className="relative">
@@ -84,7 +96,10 @@ export function Login() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm text-gray-700 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
@@ -114,7 +129,10 @@ export function Login() {
                 />
                 <span className="text-sm text-gray-700">Remember me</span>
               </label>
-              <Link to="/forgot-password" className="text-sm text-[#003f8f] hover:underline">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-[#003f8f] hover:underline"
+              >
                 Forgot password?
               </Link>
             </div>
@@ -125,12 +143,21 @@ export function Login() {
               disabled={loading}
               className="w-full py-3 bg-[#cbab42] hover:bg-[#b89935] text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+
+            {/* Google login button */}
+            <button
+              type="button"
+              onClick={handleGoogle}
+              className="w-full py-3 bg-white border border-gray-300 text-gray-800 rounded-lg transition-colors hover:bg-gray-50"
+            >
+              Continue with Google
             </button>
 
             {/* Register Link */}
             <p className="text-center text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don't have an account?{" "}
               <Link to="/register" className="text-[#003f8f] hover:underline">
                 Create account
               </Link>
@@ -158,4 +185,3 @@ export function Login() {
     </div>
   );
 }
-

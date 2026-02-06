@@ -1,14 +1,6 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from 'lucide-react';
-
-const courts = [
-  'Soccer Field 1',
-  'Basketball Court 1',
-  'Basketball Court 2',
-  'Tennis Court 1',
-  'Volleyball Court',
-];
+import { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { bookingService } from '../../services/bookingService';
 
 const hours = [
   '08:00',
@@ -28,25 +20,43 @@ const hours = [
   '22:00',
 ];
 
-// Mock bookings data
-const mockBookings = [
-  { id: '1', court: 'Soccer Field 1', startTime: '08:00', endTime: '10:00', user: 'Engineering Team A', status: 'confirmed' },
-  { id: '2', court: 'Soccer Field 1', startTime: '14:00', endTime: '16:00', user: 'Medicine Soccer Club', status: 'confirmed' },
-  { id: '3', court: 'Soccer Field 1', startTime: '18:00', endTime: '20:00', user: 'Maintenance', status: 'maintenance' },
-  { id: '4', court: 'Basketball Court 1', startTime: '09:00', endTime: '11:00', user: 'Business League', status: 'confirmed' },
-  { id: '5', court: 'Basketball Court 1', startTime: '15:00', endTime: '17:00', user: 'Sarah Johnson', status: 'pending' },
-  { id: '6', court: 'Basketball Court 2', startTime: '10:00', endTime: '12:00', user: 'Arts Department', status: 'confirmed' },
-  { id: '7', court: 'Basketball Court 2', startTime: '16:00', endTime: '18:00', user: 'David Lee', status: 'confirmed' },
-  { id: '8', court: 'Tennis Court 1', startTime: '08:00', endTime: '09:00', user: 'Emma Rodriguez', status: 'confirmed' },
-  { id: '9', court: 'Tennis Court 1', startTime: '11:00', endTime: '12:00', user: 'Noah Taylor', status: 'confirmed' },
-  { id: '10', court: 'Tennis Court 1', startTime: '17:00', endTime: '18:00', user: 'Maintenance', status: 'maintenance' },
-  { id: '11', court: 'Volleyball Court', startTime: '12:00', endTime: '14:00', user: 'Volleyball Club', status: 'confirmed' },
-  { id: '12', court: 'Volleyball Court', startTime: '19:00', endTime: '21:00', user: 'Evening League', status: 'confirmed' },
-];
-
 export function MasterSchedule() {
-  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [bookings, setBookings] = useState([]);
+  const [courts, setCourts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadScheduleData = async () => {
+      try {
+        setLoading(true);
+        const { bookings: loadedBookings, courts: loadedCourts } = await bookingService.getMasterScheduleData(currentDate);
+        setBookings(loadedBookings);
+        setCourts(loadedCourts.length > 0 ? loadedCourts : [
+          'Soccer Field 1',
+          'Basketball Court 1',
+          'Basketball Court 2',
+          'Tennis Court 1',
+          'Volleyball Court',
+        ]);
+      } catch (err) {
+        console.error('Error loading schedule data:', err);
+        setError('Failed to load schedule data');
+        setCourts([
+          'Soccer Field 1',
+          'Basketball Court 1',
+          'Basketball Court 2',
+          'Tennis Court 1',
+          'Volleyball Court',
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadScheduleData();
+  }, [currentDate]);
 
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
@@ -75,16 +85,7 @@ export function MasterSchedule() {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-500 border-green-600 text-white';
-      case 'pending':
-        return 'bg-[#cbab42] border-[#b89935] text-white';
-      case 'maintenance':
-        return 'bg-red-500 border-red-600 text-white';
-      default:
-        return 'bg-gray-500 border-gray-600 text-white';
-    }
+    return 'bg-green-500 border-green-600 text-white';
   };
 
   return (
@@ -118,14 +119,6 @@ export function MasterSchedule() {
             Today
           </button>
         </div>
-
-        <button
-          onClick={() => navigate('/admin/manual-booking')}
-          className="flex items-center gap-2 px-6 py-2 bg-[#cbab42] hover:bg-[#b89935] text-white rounded-lg transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add Manual Booking
-        </button>
       </div>
 
       {/* Legend */}
@@ -136,93 +129,87 @@ export function MasterSchedule() {
             <div className="w-4 h-4 bg-green-500 rounded" />
             <span className="text-sm text-gray-700">Confirmed</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-[#cbab42] rounded" />
-            <span className="text-sm text-gray-700">Pending</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-500 rounded" />
-            <span className="text-sm text-gray-700">Maintenance</span>
-          </div>
         </div>
       </div>
 
       {/* Schedule Grid */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 overflow-x-auto">
-        <div className="min-w-[1200px]">
-          {/* Time headers */}
-          <div className="flex mb-4">
-            <div className="w-48 flex-shrink-0" />
-            <div className="flex-1 flex">
-              {hours.map((hour) => (
-                <div
-                  key={hour}
-                  className="flex-1 text-center text-xs text-gray-600 border-l border-gray-200 first:border-l-0"
-                >
-                  {hour}
-                </div>
-              ))}
-            </div>
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Loading schedule...</p>
           </div>
-
-          {/* Court rows */}
-          {courts.map((court) => {
-            const courtBookings = mockBookings.filter((b) => b.court === court);
-
-            return (
-              <div key={court} className="flex mb-2 relative h-20">
-                {/* Court name */}
-                <div className="w-48 flex-shrink-0 pr-4 flex items-center">
-                  <span className="text-gray-900">{court}</span>
-                </div>
-
-                {/* Timeline */}
-                <div className="flex-1 relative border border-gray-200 rounded-lg bg-gray-50">
-                  {/* Hour dividers */}
-                  {hours.map((hour, index) => (
-                    <div
-                      key={hour}
-                      className="absolute top-0 bottom-0 border-l border-gray-200"
-                      style={{ left: `${(index / hours.length) * 100}%` }}
-                    />
-                  ))}
-
-                  {/* Bookings */}
-                  {courtBookings.map((booking) => {
-                    const position = getBookingPosition(booking.startTime);
-                    const width = getBookingWidth(booking.startTime, booking.endTime);
-                    const widthPercent = (width / hours.length) * 100;
-                    const leftPercent = (position / hours.length) * 100;
-
-                    return (
-                      <div
-                        key={booking.id}
-                        onClick={() =>
-                          navigate('/admin/manual-booking', {
-                            state: {
-                              bookingId: booking.id,
-                              bookingData: booking,
-                            },
-                          })
-                        }
-                        className={`absolute top-2 bottom-2 px-3 py-2 rounded-lg border-2 ${getStatusColor(booking.status)} cursor-pointer hover:opacity-90 transition-opacity flex flex-col justify-center overflow-hidden`}
-                        style={{
-                          left: `${leftPercent}%`,
-                          width: `${widthPercent}%`,
-                        }}
-                      >
-                        <p className="text-xs truncate">{booking.user}</p>
-                        <p className="text-xs opacity-80">
-                          {booking.startTime} - {booking.endTime}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-red-500">{error}</p>
+          </div>
+        ) : (
+          <div className="min-w-[1200px]">
+            {/* Time headers */}
+            <div className="flex mb-4">
+              <div className="w-48 flex-shrink-0" />
+              <div className="flex-1 flex">
+                {hours.map((hour) => (
+                  <div
+                    key={hour}
+                    className="flex-1 text-center text-xs text-gray-600 border-l border-gray-200 first:border-l-0"
+                  >
+                    {hour}
+                  </div>
+                ))}
               </div>
-            );
-          })}
-        </div>
+            </div>
+
+            {/* Court rows */}
+            {courts.map((court) => {
+              const courtBookings = bookings.filter((b) => b.court === court);
+
+              return (
+                <div key={court} className="flex mb-2 relative h-20">
+                  {/* Court name */}
+                  <div className="w-48 flex-shrink-0 pr-4 flex items-center">
+                    <span className="text-gray-900">{court}</span>
+                  </div>
+
+                  {/* Timeline */}
+                  <div className="flex-1 relative border border-gray-200 rounded-lg bg-gray-50">
+                    {/* Hour dividers */}
+                    {hours.map((hour, index) => (
+                      <div
+                        key={hour}
+                        className="absolute top-0 bottom-0 border-l border-gray-200"
+                        style={{ left: `${(index / hours.length) * 100}%` }}
+                      />
+                    ))}
+
+                    {/* Bookings */}
+                    {courtBookings.map((booking) => {
+                      const position = getBookingPosition(booking.startTime);
+                      const width = getBookingWidth(booking.startTime, booking.endTime);
+                      const widthPercent = (width / hours.length) * 100;
+                      const leftPercent = (position / hours.length) * 100;
+
+                      return (
+                        <div
+                          key={booking.id}
+                          className={`absolute top-2 bottom-2 px-3 py-2 rounded-lg border-2 ${getStatusColor(booking.status)} cursor-pointer hover:opacity-90 transition-opacity flex flex-col justify-center overflow-hidden`}
+                          style={{
+                            left: `${leftPercent}%`,
+                            width: `${widthPercent}%`,
+                          }}
+                        >
+                          <p className="text-xs truncate">{booking.user}</p>
+                          <p className="text-xs opacity-80">
+                            {booking.startTime} - {booking.endTime}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

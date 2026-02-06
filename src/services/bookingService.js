@@ -1,172 +1,253 @@
-// Mock data para reservas
-const mockCourts = {
-  soccer: [
-    { id: 's1', name: 'Soccer Field 1', available: true, surfaceType: 'Synthetic', capacity: 22 },
-    { id: 's2', name: 'Soccer Field 2', available: false, surfaceType: 'Natural Grass', capacity: 22 },
-  ],
-  basketball: [
-    { id: 'b1', name: 'Basketball Court 1', available: true, surfaceType: 'Concrete', capacity: 10 },
-    { id: 'b2', name: 'Basketball Court 2', available: true, surfaceType: 'Wood', capacity: 10 },
-    { id: 'b3', name: 'Basketball Court 3', available: false, surfaceType: 'Concrete', capacity: 10 },
-  ],
-  volleyball: [
-    { id: 'v1', name: 'Volleyball Court', available: true, surfaceType: 'Concrete', capacity: 12 },
-  ],
+import api, { API_ENDPOINTS } from "./api";
+
+// Helpers for reservations mapping
+const pad2 = (n) => String(n).padStart(2, "0");
+const normalizeTime = (time) => {
+  if (typeof time === "string") {
+    const [h = "0", m = "0", s = "0"] = time.split(":");
+    return {
+      hour: Number.parseInt(h, 10) || 0,
+      minute: Number.parseInt(m, 10) || 0,
+      second: Number.parseInt(s, 10) || 0,
+    };
+  }
+  if (
+    time &&
+    typeof time.hour === "number" &&
+    typeof time.minute === "number"
+  ) {
+    return {
+      hour: time.hour,
+      minute: time.minute,
+      second: typeof time.second === "number" ? time.second : 0,
+    };
+  }
+  return { hour: 0, minute: 0, second: 0 };
+};
+const toTimeString = (timeInput) => {
+  const timeObj = normalizeTime(timeInput);
+  return `${pad2(timeObj.hour)}:${pad2(timeObj.minute)}`;
 };
 
-const mockReservations = [
-  {
-    id: '1',
-    userId: '2',
-    sport: 'basketball',
-    courtId: 'b1',
-    courtName: 'Basketball Court 1',
-    date: '2023-12-28',
-    time: '15:00',
-    duration: 2,
-    status: 'confirmed',
-    createdAt: '2023-12-20T10:00:00Z',
-  },
-  {
-    id: '2',
-    userId: '2',
-    sport: 'soccer',
-    courtId: 's1',
-    courtName: 'Soccer Field 1',
-    date: '2023-12-30',
-    time: '10:00',
-    duration: 2,
-    status: 'confirmed',
-    createdAt: '2023-12-21T14:00:00Z',
-  },
-  {
-    id: '3',
-    userId: '2',
-    sport: 'volleyball',
-    courtId: 'v1',
-    courtName: 'Volleyball Court',
-    date: '2023-12-20',
-    time: '08:00',
-    duration: 1,
-    status: 'past',
-    createdAt: '2023-12-15T09:00:00Z',
-  },
-  {
-    id: '4',
-    userId: '2',
-    sport: 'basketball',
-    courtId: 'b2',
-    courtName: 'Basketball Court 2',
-    date: '2023-12-15',
-    time: '16:00',
-    duration: 2,
-    status: 'cancelled',
-    createdAt: '2023-12-10T11:00:00Z',
-  },
-];
+const toDateTime = (dateStr, timeInput) => {
+  const t = normalizeTime(timeInput);
 
-// Mock unavailable time slots
-const unavailableSlots = new Set([
-  'Tue-10:00',
-  'Tue-14:00',
-  'Wed-12:00',
-  'Thu-16:00',
-  'Sat-18:00',
-]);
+  const [year, month, day] = dateStr.split("-").map(Number);
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const d = new Date(year, month - 1, day);
+
+  d.setHours(t.hour, t.minute, t.second, 0);
+  return d;
+};
+const computeDurationHours = (start, end) => {
+  const ms = end.getTime() - start.getTime();
+  return Math.max(1, Math.round(ms / (1000 * 60 * 60)));
+};
+const mapStatus = (status, start, end) => {
+  const now = new Date();
+  if (String(status).toUpperCase() === "CANCELLED") return "cancelled";
+  if (end.getTime() < now.getTime()) return "past";
+  return "confirmed";
+};
+const getCourtDetails = async (courtId) => {
+  try {
+    const { data } = await api.get(API_ENDPOINTS.COURTS_GET_BY_ID(courtId));
+    const name = data?.name || data?.courtName || "Unknown Court";
+    const sportRaw =
+      data?.sport || data?.sportType || data?.type || "basketball";
+    const sport = String(sportRaw).toLowerCase();
+    return { courtName: name, sport };
+  } catch (e) {
+    return { courtName: "Unknown Court", sport: "basketball" };
+  }
+};
+const mapBookingToUi = async (booking) => {
+  const start = toDateTime(booking.date, booking.startTime);
+  const end = toDateTime(booking.date, booking.endTime);
+  const time = toTimeString(booking.startTime);
+  const duration = computeDurationHours(start, end);
+  const { courtName, sport } = await getCourtDetails(booking.courtId);
+
+  return {
+    id: booking.id,
+    date: booking.date,
+    time,
+    duration,
+    courtName,
+    sport,
+    status: mapStatus(booking.status, start, end),
+  };
+};
 
 export const bookingService = {
   async getSports() {
-    await delay(500);
-    return [
-      {
-        id: 'soccer',
-        name: 'Soccer',
-        image: 'https://i.ibb.co/Y4TWd2X5/Gemini-Generated-Image-z3xe1hz3xe1hz3xe.png',
-      },
-      {
-        id: 'basketball',
-        name: 'Basketball',
-        image: 'https://i.ibb.co/BKHmTktB/unnamed-5.jpg',
-      },
-      {
-        id: 'volleyball',
-        name: 'Volleyball',
-        image: 'https://i.ibb.co/8Dv8z7RH/Gemini-Generated-Image-rk7xsvrk7xsvrk7x.png',
-      },
-    ];
-  },
+    try {
+      const response = await api.get("/courts/sports");
 
-  async getCourts(sport) {
-    await delay(500);
-    return mockCourts[sport] || [];
-  },
-
-  async getAvailability(courtId, date) {
-    await delay(400);
-    // Retornar slots disponibles (mock)
-    const timeSlots = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
-    return timeSlots.map((time) => ({
-      time,
-      available: !unavailableSlots.has(`${date}-${time}`),
-    }));
-  },
-
-  async createReservation(reservationData) {
-    await delay(1000);
-    
-    const newReservation = {
-      id: String(mockReservations.length + 1),
-      ...reservationData,
-      status: 'confirmed',
-      createdAt: new Date().toISOString(),
-    };
-
-    mockReservations.push(newReservation);
-    return newReservation;
+      return response.data.map((sportName) => ({
+        id: sportName.toUpperCase(), // The ID must be the ENUM (SOCCER)
+        name: sportName.charAt(0) + sportName.slice(1).toLowerCase(), // Soccer
+        image: this._getSportImage(sportName),
+      }));
+    } catch (error) {
+      console.warn("Using sports fallback...");
+      const courts = await this.getCourts();
+      const uniqueSports = [...new Set(courts.map((c) => c.sport))];
+      return uniqueSports.map((sport) => ({
+        id: sport.toUpperCase(),
+        name: sport.charAt(0) + sport.slice(1).toLowerCase(),
+        image: this._getSportImage(sport),
+      }));
+    }
   },
 
   async getMyReservations(userId) {
-    await delay(600);
-    return mockReservations.filter((r) => r.userId === userId);
+    const { data } = await api.get(API_ENDPOINTS.BOOKINGS_GET_USER(userId));
+    if (!Array.isArray(data)) return [];
+    const mapped = await Promise.all(data.map((b) => mapBookingToUi(b)));
+    return mapped;
   },
 
-  async getReservationById(reservationId) {
-    await delay(400);
-    const reservation = mockReservations.find((r) => r.id === reservationId);
-    if (!reservation) {
-      throw new Error('Reservation not found');
+  async getReservationById(id) {
+    const { data } = await api.get(API_ENDPOINTS.BOOKINGS_GET_BY_ID(id));
+    if (!data) return null;
+    return await mapBookingToUi(data);
+  },
+
+  async cancelReservation(id) {
+    const { data } = await api.patch(API_ENDPOINTS.BOOKINGS_CANCEL(id));
+    return await mapBookingToUi(data);
+  },
+
+  async getCourts(sport = null) {
+    try {
+      const url = sport
+        ? `${API_ENDPOINTS.COURTS_GET_ALL}?sportType=${sport.toUpperCase()}`
+        : API_ENDPOINTS.COURTS_GET_ALL;
+      const response = await api.get(url);
+      return response.data;
+    } catch (error) {
+      throw error;
     }
-    return reservation;
   },
 
-  async cancelReservation(reservationId) {
-    await delay(500);
-    const reservation = mockReservations.find((r) => r.id === reservationId);
-    if (reservation) {
-      reservation.status = 'cancelled';
-      return reservation;
+  async createReservation(reservationData) {
+    try {
+      const payload = {
+        courtId: reservationData.courtId,
+        date: reservationData.date,
+        startTime: reservationData.startTime,
+      };
+
+      const response = await api.post(API_ENDPOINTS.BOOKINGS_CREATE, payload);
+      return response.data;
+    } catch (error) {
+      throw error;
     }
-    throw new Error('Reservation not found');
   },
 
-  async getTimeSlots(date) {
-    await delay(300);
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dateObj = new Date(date);
-    const dayIndex = dateObj.getDay();
-    const day = days[dayIndex];
-    const dateNum = dateObj.getDate();
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const month = monthNames[dateObj.getMonth()];
+  async getAllBookings() {
+    try {
+      const response = await api.get("/bookings/internal/bookings/all");
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching all bookings:", error);
+      throw error;
+    }
+  },
+
+  async getMasterScheduleData(date) {
+    try {
+      const allBookings = await this.getAllBookings();
+      const courts = await this.getCourts();
+
+      // Create a map of courtId to court details
+      const courtMap = {};
+      courts.forEach(court => {
+        courtMap[court.id] = {
+          name: court.name,
+          sport: court.sport || court.sportType,
+        };
+      });
+
+      // Filter bookings for the specified date and map them
+      const dateStr = date.toISOString().split('T')[0];
+      const mappedBookings = allBookings
+        .filter(booking => {
+          const bookingDate = booking.date instanceof Date 
+            ? booking.date.toISOString().split('T')[0]
+            : booking.date;
+          return bookingDate === dateStr && booking.status === "CONFIRMED";
+        })
+        .map(booking => {
+          const courtInfo = courtMap[booking.courtId] || { name: "Unknown Court", sport: "basketball" };
+          const startTime = toTimeString(booking.startTime);
+          
+          // Assume default 1 hour duration if not provided
+          const [h, m] = startTime.split(':').map(Number);
+          const endHour = h + 1;
+          const endTime = `${pad2(endHour)}:${pad2(m)}`;
+
+          return {
+            id: booking.id,
+            court: courtInfo.name,
+            startTime: startTime,
+            endTime: endTime,
+            user: "User " + booking.userId.substring(0, 8),
+            status: "confirmed",
+          };
+        });
+
+      return { bookings: mappedBookings, courts: Object.values(courtMap).map(c => c.name) };
+    } catch (error) {
+      console.error("Error fetching master schedule data:", error);
+      return { bookings: [], courts: [] };
+    }
+  },
+
+  // Visual helpers
+  getTimeSlots(dateStr) {
+    const dateObj = new Date(dateStr);
+    const userTimezoneOffset = dateObj.getTimezoneOffset() * 60000;
+    const adjustedDate = new Date(dateObj.getTime() + userTimezoneOffset);
+
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
 
     return {
-      day,
-      date: dateNum,
-      month,
-      slots: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+      day: days[adjustedDate.getDay()],
+      date: adjustedDate.getDate(),
+      month: months[adjustedDate.getMonth()],
+      fullDate: dateStr.split("T")[0],
     };
   },
-};
 
+  _getSportImage(sport) {
+    const s = sport ? sport.toUpperCase() : "";
+    const images = {
+      SOCCER:
+        "https://i.ibb.co/Y4TWd2X5/Gemini-Generated-Image-z3xe1hz3xe1hz3xe.png",
+      BASKETBALL: "https://i.ibb.co/BKHmTktB/unnamed-5.jpg",
+      VOLLEYBALL:
+        "https://i.ibb.co/8Dv8z7RH/Gemini-Generated-Image-rk7xsvrk7xsvrk7x.png",
+      TENNIS:
+        "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=1000&auto=format&fit=crop",
+      PADEL:
+        "https://images.unsplash.com/photo-1626248386187-57cb5d84c6c2?q=80&w=2000&auto=format&fit=crop",
+    };
+    return images[s] || "https://via.placeholder.com/200?text=Sport";
+  },
+};

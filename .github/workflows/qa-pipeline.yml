@@ -1,0 +1,63 @@
+name: Frontend Selective CD - QA Environment
+
+on:
+  push:
+    branches: ["qa"]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "Dockerfile"
+      - "nginx.conf"
+
+jobs:
+  build-and-deploy-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker image (QA)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/courthub-frontend:qa
+          build-args: |
+            VITE_API_URL=/api
+            VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY_QA }}
+            VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_QA }}
+            VITE_FIREBASE_DATABASE_URL=${{ secrets.VITE_FIREBASE_DATABASE_URL_QA }}
+            VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID_QA }}
+            VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_QA }}
+            VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_QA }}
+            VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID_QA }}
+
+      - name: Deploy to QA via Bastion
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.QA_FRONTEND_IP }}
+          username: ec2-user
+          key: ${{ secrets.QA_SSH_PRIVATE_KEY }}
+          proxy_host: ${{ secrets.QA_BASTION_IP }}
+          proxy_username: ec2-user
+          proxy_key: ${{ secrets.QA_SSH_PRIVATE_KEY }}
+          script: |
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/courthub-frontend:qa
+            
+            docker rm -f frontend || true
+            docker run -d --name frontend \
+              --restart unless-stopped \
+              -p 80:80 \
+              -e BACKEND_URL="${{ secrets.BACKEND_URL_QA }}" \
+              ${{ secrets.DOCKERHUB_USERNAME }}/courthub-frontend:qa
+            
+            docker image prune -f
