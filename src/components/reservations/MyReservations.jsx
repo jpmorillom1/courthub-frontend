@@ -32,12 +32,6 @@ export function MyReservations() {
             Confirmed
           </span>
         );
-      case "past":
-        return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
-            Past
-          </span>
-        );
       case "cancelled":
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-red-100 text-red-700">
@@ -47,6 +41,17 @@ export function MyReservations() {
       default:
         return null;
     }
+  };
+
+  const isReservationPast = (reservation) => {
+    const [year, month, day] = reservation.date.split("-").map(Number);
+    const [hours, minutes] = reservation.time.split(":").map(Number);
+    
+    const reservationDate = new Date(year, month - 1, day, hours, minutes);
+    const endDate = new Date(reservationDate);
+    endDate.setHours(endDate.getHours() + reservation.duration);
+    
+    return endDate < new Date();
   };
 
   const getSportImage = (sport) => {
@@ -86,10 +91,16 @@ export function MyReservations() {
     })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
   };
 
-  const upcomingReservations = reservations.filter(
-    (r) => r.status === "confirmed",
+  const validReservations = reservations.filter(
+    (r) => r.status !== "pending_payment" && r.status !== "payment_failed"
   );
-  const pastReservations = reservations.filter((r) => r.status !== "confirmed");
+
+  const upcomingReservations = validReservations.filter(
+    (r) => r.status === "confirmed" && !isReservationPast(r)
+  );
+  const pastReservations = validReservations.filter(
+    (r) => r.status === "cancelled" || (r.status === "confirmed" && isReservationPast(r))
+  );
 
   if (loading) {
     return (

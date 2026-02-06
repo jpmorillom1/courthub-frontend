@@ -50,18 +50,27 @@ export function ReservationDetail() {
     })} - ${end.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
   };
 
+  const isReservationPast = () => {
+    if (!reservation) return false;
+    
+    const [year, month, day] = reservation.date.split("-").map(Number);
+    const [hours, minutes] = reservation.time.split(":").map(Number);
+    
+    const reservationDate = new Date(year, month - 1, day, hours, minutes);
+    const endDate = new Date(reservationDate);
+    endDate.setHours(endDate.getHours() + reservation.duration);
+    
+    return endDate < new Date();
+  };
+
   const getStatusBadge = (status) => {
+    const isPast = isReservationPast();
+    
     switch (status) {
       case "confirmed":
         return (
           <span className="inline-flex items-center px-4 py-2 rounded-full text-sm bg-green-100 text-green-700">
-            Confirmed
-          </span>
-        );
-      case "past":
-        return (
-          <span className="inline-flex items-center px-4 py-2 rounded-full text-sm bg-gray-100 text-gray-700">
-            Past
+            {isPast ? "Past" : "Confirmed"}
           </span>
         );
       case "cancelled":
@@ -182,23 +191,25 @@ export function ReservationDetail() {
               >
                 Report an Issue
               </Link>
-              <button
-                onClick={async () => {
-                  if (
-                    confirm("Are you sure you want to cancel this reservation?")
-                  ) {
-                    try {
-                      await bookingService.cancelReservation(reservation.id);
-                      navigate("/reservations");
-                    } catch (error) {
-                      alert("Error cancelling reservation: " + error.message);
+              {!isReservationPast() && (
+                <button
+                  onClick={async () => {
+                    if (
+                      confirm("Are you sure you want to cancel this reservation?")
+                    ) {
+                      try {
+                        await bookingService.cancelReservation(reservation.id);
+                        navigate("/reservations");
+                      } catch (error) {
+                        alert("Error cancelling reservation: " + error.message);
+                      }
                     }
-                  }
-                }}
-                className="flex-1 min-w-[200px] px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-              >
-                Cancel Reservation
-              </button>
+                  }}
+                  className="flex-1 min-w-[200px] px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel Reservation
+                </button>
+              )}
             </div>
           </div>
         )}
