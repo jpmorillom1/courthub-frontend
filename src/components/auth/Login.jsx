@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageWithFallback } from "../common/ImageWithFallback";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../store/authStore";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),

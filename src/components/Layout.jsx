@@ -12,7 +12,7 @@ import {
   X,
   Bell,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../store/authStore";
 import { userService } from "../services/userService";
 import { NotificationsPanel } from "./common/NotificationsPanel";
 
