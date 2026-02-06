@@ -1,13 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
-import { extend, useFrame } from '@react-three/fiber';
+import { useState, useRef, useEffect } from "react";
+import { extend, useFrame } from "@react-three/fiber";
 import {
   useVideoTexture,
   shaderMaterial,
   Html,
   ContactShadows,
   useCursor,
-} from '@react-three/drei';
-import * as THREE from 'three';
+} from "@react-three/drei";
+import * as THREE from "three";
 
 // Definición del Shader (B/N a Color con boost de brillo)
 const CardMaterial = shaderMaterial(
@@ -41,13 +41,14 @@ const CardMaterial = shaderMaterial(
       finalColor = mix(finalColor, finalColor * 1.1, uHover);
       gl_FragColor = vec4(finalColor, color.a);
     }
-  `
+  `,
 );
 
 extend({ CardMaterial });
 
 export function VideoCard({
   videoUrl,
+  videoCrossOrigin = "anonymous",
   label,
   position = [0, 0, 0],
   rotation = [0, 0, 0],
@@ -69,7 +70,7 @@ export function VideoCard({
     loop: true,
     start: true,
     playsInline: true,
-    crossOrigin: 'Anonymous',
+    crossOrigin: videoCrossOrigin,
   });
 
   // Reproducir/Pausar video
@@ -92,7 +93,7 @@ export function VideoCard({
       meshRef.current.position.z = THREE.MathUtils.lerp(
         meshRef.current.position.z,
         hoverZ,
-        0.15
+        0.15,
       );
     }
     // Transición de shader
@@ -101,7 +102,7 @@ export function VideoCard({
       materialRef.current.uniforms.uHover.value = THREE.MathUtils.lerp(
         materialRef.current.uniforms.uHover.value,
         targetHover,
-        0.25
+        0.25,
       );
     }
   });
@@ -144,7 +145,7 @@ export function VideoCard({
         {hovered && available && (
           <Html
             position={cursorLocal.clone().add(labelOffset)}
-            style={{ pointerEvents: 'none' }}
+            style={{ pointerEvents: "none" }}
             center
             distanceFactor={10}
           >
@@ -153,10 +154,16 @@ export function VideoCard({
                 <h3 className="label-title">{label}</h3>
                 {(surfaceType || capacity) && (
                   <div className="label-specs">
-                    {surfaceType && <span className="label-spec-item">{surfaceType}</span>}
+                    {surfaceType && (
+                      <span className="label-spec-item">{surfaceType}</span>
+                    )}
                     {capacity && (
                       <span className="label-spec-item">
-                        <svg className="label-icon" viewBox="0 0 20 20" fill="currentColor">
+                        <svg
+                          className="label-icon"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
                           <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                         </svg>
                         {capacity} players
@@ -182,4 +189,3 @@ export function VideoCard({
     </group>
   );
 }
-
