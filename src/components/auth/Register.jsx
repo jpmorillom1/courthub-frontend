@@ -1,52 +1,74 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageWithFallback } from "../common/ImageWithFallback";
 import { useAuth } from "../../context/AuthContext";
+
+const FACULTIES = [
+  "INGENIERÍA Y CIENCIAS APLICADAS",
+  "CIENCIAS MÉDICAS",
+  "JURISPRUDENCIA, CIENCIAS POLÍTICAS Y SOCIALES",
+  "CIENCIAS ECONÓMICAS",
+  "CIENCIAS",
+  "CIENCIAS ADMINISTRATIVAS",
+  "FILOSOFÍA, LETRAS Y CIENCIAS DE LA EDUCACIÓN",
+  "CIENCIAS SOCIALES Y HUMANAS",
+  "ARQUITECTURA Y URBANISMO",
+  "ARTES",
+  "CIENCIAS AGRÍCOLAS",
+  "CIENCIAS BIOLÓGICAS",
+  "CIENCIAS DE LA DISCAPACIDAD, ATENCIÓN PREHOSPITALARIA Y DESASTRES",
+  "CIENCIAS PSICOLÓGICAS",
+  "CIENCIAS QUÍMICAS",
+  "COMUNICACIÓN SOCIAL",
+  "CULTURA FÍSICA",
+  "INGENIERÍA EN GEOLOGÍA, MINAS, PETRÓLEOS Y AMBIENTAL",
+  "INGENIERÍA QUÍMICA",
+  "MEDICINA VETERINARIA Y ZOOTECNIA",
+];
+
+const registerSchema = z
+  .object({
+    name: z.string().min(1, "Full name is required"),
+    email: z.string().email("Enter a valid email"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Confirm your password"),
+    faculty: z
+      .string()
+      .refine((value) => FACULTIES.includes(value), "Select a faculty"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 export function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    faculty: "",
-  });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      faculty: "",
+    },
+  });
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setError("");
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
-    if (!formData.faculty.trim()) {
-      setError("Faculty is required");
-      return;
-    }
-
-    setLoading(true);
-
     try {
-      const { name, email, password, faculty } = formData;
+      const { name, email, password, faculty } = data;
       const result = await register({ name, email, password, faculty });
       if (result.success) {
         navigate("/login");
@@ -55,8 +77,6 @@ export function Register() {
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -90,7 +110,7 @@ export function Register() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Name */}
             <div>
               <label
@@ -107,13 +127,16 @@ export function Register() {
                   id="name"
                   name="name"
                   type="text"
-                  value={formData.name}
-                  onChange={handleChange}
                   placeholder="John Doe"
-                  required
+                  {...registerField("name")}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
                 />
               </div>
+              {errors.name?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.name.message}
+                </p>
+              )}
             </div>
 
             {/* Faculty */}
@@ -124,16 +147,24 @@ export function Register() {
               >
                 Faculty
               </label>
-              <input
+              <select
                 id="faculty"
                 name="faculty"
-                type="text"
-                value={formData.faculty}
-                onChange={handleChange}
-                placeholder="Engineering"
-                required
+                {...registerField("faculty")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
-              />
+              >
+                <option value="">Select faculty</option>
+                {FACULTIES.map((faculty) => (
+                  <option key={faculty} value={faculty}>
+                    {faculty}
+                  </option>
+                ))}
+              </select>
+              {errors.faculty?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.faculty.message}
+                </p>
+              )}
             </div>
 
             {/* Email */}
@@ -152,13 +183,16 @@ export function Register() {
                   id="email"
                   name="email"
                   type="email"
-                  value={formData.email}
-                  onChange={handleChange}
                   placeholder="tu.email@uce.edu.ec"
-                  required
+                  {...registerField("email")}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
                 />
               </div>
+              {errors.email?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Password */}
@@ -177,13 +211,16 @@ export function Register() {
                   id="password"
                   name="password"
                   type="password"
-                  value={formData.password}
-                  onChange={handleChange}
                   placeholder="••••••••"
-                  required
+                  {...registerField("password")}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
                 />
               </div>
+              {errors.password?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {/* Confirm Password */}
@@ -202,22 +239,25 @@ export function Register() {
                   id="confirmPassword"
                   name="confirmPassword"
                   type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
                   placeholder="••••••••"
-                  required
+                  {...registerField("confirmPassword")}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
                 />
               </div>
+              {errors.confirmPassword?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={isSubmitting}
               className="w-full py-3 bg-[#cbab42] hover:bg-[#b89935] text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {loading ? "Creating account..." : "Create account"}
+              {isSubmitting ? "Creating account..." : "Create account"}
             </button>
 
             {/* Login Link */}
