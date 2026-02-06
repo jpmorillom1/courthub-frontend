@@ -36,6 +36,9 @@ export function UserProfile() {
   }
 
   const displayUser = profile || user;
+  const roleText = Array.isArray(displayUser?.roles)
+    ? displayUser.roles.filter(Boolean).join(", ")
+    : displayUser?.role || "";
 
   return (
     <div className="p-6">
@@ -104,15 +107,15 @@ export function UserProfile() {
               </div>
             )}
 
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-              <User className="w-5 h-5 text-gray-600" />
-              <div>
-                <p className="text-sm text-gray-600">Role</p>
-                <p className="text-gray-900 capitalize">
-                  {displayUser?.role || "Student"}
-                </p>
+            {roleText && (
+              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                <User className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Role</p>
+                  <p className="text-gray-900 capitalize">{roleText}</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
