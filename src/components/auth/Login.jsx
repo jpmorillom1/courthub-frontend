@@ -10,12 +10,11 @@ import { useAuth } from "../../context/AuthContext";
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean().optional(),
 });
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, startGoogleOAuth } = useAuth();
+  const { login } = useAuth();
   const [error, setError] = useState("");
   const {
     register: registerField,
@@ -26,7 +25,6 @@ export function Login() {
     defaultValues: {
       email: "",
       password: "",
-      rememberMe: false,
     },
   });
 
@@ -43,11 +41,6 @@ export function Login() {
     } catch (err) {
       setError("An error occurred. Please try again.");
     }
-  };
-
-  const handleGoogle = () => {
-    // start OAuth flow
-    if (typeof startGoogleOAuth === "function") startGoogleOAuth();
   };
 
   return (
@@ -137,25 +130,6 @@ export function Login() {
               )}
             </div>
 
-            {/* Remember me & Forgot password */}
-            <div className="flex items-center justify-between">
-              <label htmlFor="rememberMe" className="flex items-center gap-2 cursor-pointer">
-                <input
-                  id="rememberMe"
-                  type="checkbox"
-                  {...registerField("rememberMe")}
-                  className="w-4 h-4 text-[#cbab42] border-gray-300 rounded focus:ring-[#cbab42]"
-                />
-                <span className="text-sm text-gray-700">Remember me</span>
-              </label>
-              <Link
-                to="/forgot-password"
-                className="text-sm text-[#003f8f] hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
@@ -163,15 +137,6 @@ export function Login() {
               className="w-full py-3 bg-[#cbab42] hover:bg-[#b89935] text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {isSubmitting ? "Signing in..." : "Sign in"}
-            </button>
-
-            {/* Google login button */}
-            <button
-              type="button"
-              onClick={handleGoogle}
-              className="w-full py-3 bg-white border border-gray-300 text-gray-800 rounded-lg transition-colors hover:bg-gray-50"
-            >
-              Continue with Google
             </button>
 
             {/* Register Link */}
