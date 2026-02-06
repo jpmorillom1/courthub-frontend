@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { TimeSlotGridSkeleton } from "../common/skeletons/TimeSlotGridSkeleton";
 
 export function TimeSlotGrid({
   selectedCourt,
@@ -42,7 +43,7 @@ export function TimeSlotGrid({
         </div>
 
         {fbLoading ? (
-          <p className="text-center text-gray-400">Loading...</p>
+          <TimeSlotGridSkeleton courtName={selectedCourt?.name} />
         ) : (
           <div className="flex gap-0 overflow-x-auto">
             {dateHeaders.map((day) => {
