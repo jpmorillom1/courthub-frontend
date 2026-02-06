@@ -4,7 +4,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { useAuth } from "./store/authStore";
+import { AuthInitializer } from "./store/AuthInitializer";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/common/ProtectedRoute";
 import { Login } from "./components/auth/Login";
@@ -34,7 +35,8 @@ function HomeRedirect() {
 
 function App() {
   return (
-    <AuthProvider>
+    <>
+      <AuthInitializer />
       <Router>
         <Routes>
           {/* Auth routes - no layout */}
@@ -183,7 +185,7 @@ function App() {
           />
         </Routes>
       </Router>
-    </AuthProvider>
+    </>
   );
 }
 
