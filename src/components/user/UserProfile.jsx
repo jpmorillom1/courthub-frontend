@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { User, Mail, LogOut } from 'lucide-react';
-import { userService } from '../../services/userService';
+import { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { User, Mail, LogOut } from "lucide-react";
+import { userService } from "../../services/userService";
+import { ProfileSkeleton } from "../common/skeletons/ProfileSkeleton";
 
 export function UserProfile() {
   const { user, logout } = useAuth();
@@ -16,7 +17,7 @@ export function UserProfile() {
         const data = await userService.getCurrentUserProfile();
         setProfile(data);
       } catch (error) {
-        console.error('Error loading profile:', error);
+        console.error("Error loading profile:", error);
       } finally {
         setLoading(false);
       }
@@ -27,15 +28,11 @@ export function UserProfile() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center h-full">
-        <p className="text-gray-500">Loading profile...</p>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   const displayUser = profile || user;
@@ -54,15 +51,19 @@ export function UserProfile() {
             <div className="w-20 h-20 bg-[#003f8f] rounded-full flex items-center justify-center">
               <span className="text-white text-2xl font-semibold">
                 {displayUser?.name
-                  ?.split(' ')
+                  ?.split(" ")
                   .map((n) => n[0])
-                  .join('')
-                  .toUpperCase() || 'U'}
+                  .join("")
+                  .toUpperCase() || "U"}
               </span>
             </div>
             <div>
-              <h3 className="text-gray-900 text-xl">{displayUser?.name || 'User'}</h3>
-              <p className="text-gray-600">{displayUser?.email || 'user@uce.edu.ec'}</p>
+              <h3 className="text-gray-900 text-xl">
+                {displayUser?.name || "User"}
+              </h3>
+              <p className="text-gray-600">
+                {displayUser?.email || "user@uce.edu.ec"}
+              </p>
             </div>
           </div>
 
@@ -71,7 +72,7 @@ export function UserProfile() {
               <User className="w-5 h-5 text-gray-600" />
               <div>
                 <p className="text-sm text-gray-600">Full Name</p>
-                <p className="text-gray-900">{displayUser?.name || 'N/A'}</p>
+                <p className="text-gray-900">{displayUser?.name || "N/A"}</p>
               </div>
             </div>
 
@@ -79,7 +80,7 @@ export function UserProfile() {
               <Mail className="w-5 h-5 text-gray-600" />
               <div>
                 <p className="text-sm text-gray-600">Email</p>
-                <p className="text-gray-900">{displayUser?.email || 'N/A'}</p>
+                <p className="text-gray-900">{displayUser?.email || "N/A"}</p>
               </div>
             </div>
 
@@ -107,7 +108,9 @@ export function UserProfile() {
               <User className="w-5 h-5 text-gray-600" />
               <div>
                 <p className="text-sm text-gray-600">Role</p>
-                <p className="text-gray-900 capitalize">{displayUser?.role || 'Student'}</p>
+                <p className="text-gray-900 capitalize">
+                  {displayUser?.role || "Student"}
+                </p>
               </div>
             </div>
           </div>
@@ -127,4 +130,3 @@ export function UserProfile() {
     </div>
   );
 }
-
