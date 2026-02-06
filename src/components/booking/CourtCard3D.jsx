@@ -1,8 +1,7 @@
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
-import { VideoCard } from './VideoCard';
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Environment } from "@react-three/drei";
+import { VideoCard } from "./VideoCard";
 
-// Función para calcular posiciones de las canchas en una grilla
 const calculatePositions = (count) => {
   const positions = [];
   const spacing = 3.5;
@@ -19,35 +18,24 @@ const calculatePositions = (count) => {
   return positions;
 };
 
-// Mapeo de videos por deporte
-const getVideoUrl = (sport, index) => {
-  const videoMap = {
-    soccer: ['/soccer-1.mp4', '/soccer-2.mp4'],
-    basketball: ['/basketball-1.mp4', '/basketball-2.mp4', '/basketball-3.mp4'],
-    volleyball: ['/volleyball-1.mp4'],
-  };
-  const videos = videoMap[sport] || videoMap.basketball;
-  return videos[index % videos.length];
-};
-
-export function CourtCard3D({ courts, selectedCourt, onCourtSelect, sport }) {
+export function CourtCard3D({ courts, selectedCourt, onCourtSelect }) {
   const positions = calculatePositions(courts.length);
 
   return (
     <div
       style={{
-        width: '100%',
-        height: '600px',
-        borderRadius: '16px',
-        overflow: 'hidden',
-        background: '#f4f6f8',
+        width: "100%",
+        height: "600px",
+        borderRadius: "16px",
+        overflow: "hidden",
+        background: "#f4f6f8",
       }}
     >
       <Canvas
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: "100%", height: "100%" }}
         shadows
         camera={{ position: [-8, 8, 8], fov: 35, near: 0.1, far: 100 }}
-        onCreated={(state) => state.gl.setClearColor('#f4f6f8')}
+        onCreated={(state) => state.gl.setClearColor("#f4f6f8")}
       >
         <Environment preset="sunset" />
 
@@ -56,11 +44,11 @@ export function CourtCard3D({ courts, selectedCourt, onCourtSelect, sport }) {
             key={court.id}
             position={positions[i]}
             rotation={[-Math.PI / 2, 0, 0]}
-            videoUrl={getVideoUrl(sport, i)}
+            videoUrl={court.videoUrl}
             label={court.name}
-            available={court.available}
+            available={court.status === "ACTIVE"}
             surfaceType={court.surfaceType}
-            capacity={court.capacity}
+            capacity={court.capacity || 10}
             onSelect={() => onCourtSelect(court)}
           />
         ))}
@@ -82,4 +70,3 @@ export function CourtCard3D({ courts, selectedCourt, onCourtSelect, sport }) {
     </div>
   );
 }
-

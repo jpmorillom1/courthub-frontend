@@ -1,52 +1,111 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
-import { reportService } from '../../services/reportService';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { AlertCircle, ArrowLeft } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { courtIssueService } from "../../services/courtIssueService";
+import api, { API_ENDPOINTS } from "../../services/api";
+
+const reportIssueSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
+  severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+});
 
 export function ReportIssue() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    issue: '',
-    description: '',
-    severity: 'Low',
+  const [loadingReservation, setLoadingReservation] = useState(true);
+  const [error, setError] = useState("");
+  const [courtId, setCourtId] = useState(null);
+  const [reservation, setReservation] = useState(null);
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(reportIssueSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      severity: "MEDIUM",
+    },
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  // Load reservation to get courtId
+  useEffect(() => {
+    const loadReservation = async () => {
+      try {
+        const { data } = await api.get(API_ENDPOINTS.BOOKINGS_GET_BY_ID(id));
+        setReservation(data);
+        setCourtId(data.courtId);
+      } catch (err) {
+        console.error("Error loading reservation:", err);
+        setError("Error loading reservation details");
+      } finally {
+        setLoadingReservation(false);
+      }
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    if (id) {
+      loadReservation();
+    }
+  }, [id]);
+
+  const onSubmit = async (data) => {
+    if (!courtId) {
+      setError("Court information not available");
+      return;
+    }
+
+    setError("");
 
     try {
-      const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
-
-      await reportService.createReport({
-        reservationId: id,
-        userId: user?.id || '2',
-        courtName: 'Court Name', // You might want to fetch this from reservation
-        issue: formData.issue,
-        description: formData.description,
-        severity: formData.severity,
+      await courtIssueService.reportIssue(courtId, {
+        title: data.title,
+        description: data.description,
+        severity: data.severity,
       });
 
-      alert('Issue reported successfully!');
+      alert("Issue reported successfully!");
       navigate(`/reservations/${id}`);
     } catch (err) {
-      setError('Error reporting issue: ' + err.message);
-    } finally {
-      setLoading(false);
+      setError(
+        "Error reporting issue: " +
+          (err.response?.data?.message || err.message),
+      );
     }
   };
+
+  if (loadingReservation) {
+    return (
+      <div className="p-6 flex items-center justify-center h-full">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!courtId) {
+    return (
+      <div className="p-6">
+        <div className="bg-white rounded-xl p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-gray-900 mb-2">Unable to load reservation</h3>
+          <p className="text-gray-600 mb-6">
+            Could not find the court information for this reservation.
+          </p>
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#003f8f] hover:bg-[#002f6f] text-white rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -71,57 +130,77 @@ export function ReportIssue() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Issue Title */}
             <div>
-              <label htmlFor="issue" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Issue Title
               </label>
               <input
-                id="issue"
-                name="issue"
+                id="title"
+                name="title"
                 type="text"
-                value={formData.issue}
-                onChange={handleChange}
                 placeholder="e.g., Broken net on south basket"
-                required
+                {...registerField("title")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
               />
+              {errors.title?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.title.message}
+                </p>
+              )}
             </div>
 
             {/* Description */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Description
               </label>
               <textarea
                 id="description"
                 name="description"
-                value={formData.description}
-                onChange={handleChange}
                 placeholder="Please provide details about the issue..."
                 rows={6}
-                required
+                {...registerField("description")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all resize-none"
               />
+              {errors.description?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.description.message}
+                </p>
+              )}
             </div>
 
             {/* Severity */}
             <div>
-              <label htmlFor="severity" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="severity"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Severity
               </label>
               <select
                 id="severity"
                 name="severity"
-                value={formData.severity}
-                onChange={handleChange}
+                {...registerField("severity")}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
               >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
               </select>
+              {errors.severity?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.severity.message}
+                </p>
+              )}
             </div>
 
             {/* Submit Button */}
@@ -135,10 +214,10 @@ export function ReportIssue() {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
                 className="flex-1 px-6 py-3 bg-[#cbab42] hover:bg-[#b89935] text-white rounded-lg transition-colors disabled:opacity-50"
               >
-                {loading ? 'Submitting...' : 'Submit Report'}
+                {isSubmitting ? "Submitting..." : "Submit Report"}
               </button>
             </div>
           </form>
@@ -147,4 +226,3 @@ export function ReportIssue() {
     </div>
   );
 }
-

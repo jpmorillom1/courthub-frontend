@@ -1,34 +1,45 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
-import { ImageWithFallback } from '../common/ImageWithFallback';
-import { useAuth } from '../../context/AuthContext';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ImageWithFallback } from "../common/ImageWithFallback";
+import { useAuth } from "../../store/authStore";
+
+const loginSchema = z.object({
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const {
+    register: registerField,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const onSubmit = async (data) => {
+    setError("");
 
     try {
-      const result = await login(email, password);
+      const result = await login(data.email, data.password);
       if (result.success) {
-        navigate('/dashboard');
+        navigate("/dashboard");
       } else {
-        setError(result.error || 'Invalid email or password');
+        setError(result.error || "Invalid email or password");
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
-    } finally {
-      setLoading(false);
+      setError("An error occurred. Please try again.");
     }
   };
 
@@ -48,8 +59,12 @@ export function Login() {
 
           {/* Title centered */}
           <div className="mb-6 text-center">
-            <h1 className="text-[#003f8f] text-2xl font-semibold mb-2">Sign in</h1>
-            <p className="text-gray-600">Welcome back! Please enter your details.</p>
+            <h1 className="text-[#003f8f] text-2xl font-semibold mb-2">
+              Sign in
+            </h1>
+            <p className="text-gray-600">
+              Welcome back! Please enter your details.
+            </p>
           </div>
 
           {/* Error message */}
@@ -60,10 +75,13 @@ export function Login() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm text-gray-700 mb-2"
+              >
                 Email
               </label>
               <div className="relative">
@@ -73,18 +91,24 @@ export function Login() {
                 <input
                   id="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu.email@uce.edu.ec"
-                  required
+                  {...registerField("email")}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
                 />
               </div>
+              {errors.email?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm text-gray-700 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
@@ -94,43 +118,30 @@ export function Login() {
                 <input
                   id="password"
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  required
+                  {...registerField("password")}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#cbab42] focus:border-transparent transition-all"
                 />
               </div>
-            </div>
-
-            {/* Remember me & Forgot password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-[#cbab42] border-gray-300 rounded focus:ring-[#cbab42]"
-                />
-                <span className="text-sm text-gray-700">Remember me</span>
-              </label>
-              <Link to="/forgot-password" className="text-sm text-[#003f8f] hover:underline">
-                Forgot password?
-              </Link>
+              {errors.password?.message && (
+                <p className="mt-1 text-xs text-red-600">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={isSubmitting}
               className="w-full py-3 bg-[#cbab42] hover:bg-[#b89935] text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {isSubmitting ? "Signing in..." : "Sign in"}
             </button>
 
             {/* Register Link */}
             <p className="text-center text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don't have an account?{" "}
               <Link to="/register" className="text-[#003f8f] hover:underline">
                 Create account
               </Link>
@@ -158,4 +169,3 @@ export function Login() {
     </div>
   );
 }
-
