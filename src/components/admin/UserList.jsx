@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Users } from 'lucide-react';
-import { userService } from '../../services/userService';
+import { useState, useEffect } from "react";
+import { Users } from "lucide-react";
+import { userService } from "../../services/userService";
+import { TableSkeleton } from "../common/skeletons/TableSkeleton";
 
 export function UserList() {
   const [users, setUsers] = useState([]);
@@ -12,7 +13,7 @@ export function UserList() {
         const data = await userService.getAllUsers();
         setUsers(data);
       } catch (error) {
-        console.error('Error loading users:', error);
+        console.error("Error loading users:", error);
       } finally {
         setLoading(false);
       }
@@ -23,8 +24,15 @@ export function UserList() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center h-full">
-        <p className="text-gray-500">Loading users...</p>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center gap-2">
+          <Users className="w-6 h-6 text-gray-600" />
+          <div>
+            <h2 className="text-gray-900">User Management</h2>
+            <p className="text-gray-600 mt-1">View all users</p>
+          </div>
+        </div>
+        <TableSkeleton rows={8} columns={3} />
       </div>
     );
   }
@@ -44,9 +52,15 @@ export function UserList() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">Name</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">Faculty</th>
-                <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">User ID</th>
+                <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">
+                  Name
+                </th>
+                <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">
+                  Faculty
+                </th>
+                <th className="text-left py-4 px-6 text-sm font-medium text-gray-700">
+                  User ID
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -58,11 +72,18 @@ export function UserList() {
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-6 text-sm text-gray-900">{user.name}</td>
-                    <td className="py-4 px-6 text-sm text-gray-600">{user.faculty || '-'}</td>
+                  <tr
+                    key={user.id}
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    <td className="py-4 px-6 text-sm text-gray-900">
+                      {user.name}
+                    </td>
                     <td className="py-4 px-6 text-sm text-gray-600">
-                      {user.id ? user.id.slice(0, 8) : '-'}
+                      {user.faculty || "-"}
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-600">
+                      {user.id ? user.id.slice(0, 8) : "-"}
                     </td>
                   </tr>
                 ))
@@ -74,4 +95,3 @@ export function UserList() {
     </div>
   );
 }
-
