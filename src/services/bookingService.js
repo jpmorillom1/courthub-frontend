@@ -146,6 +146,65 @@ export const bookingService = {
     }
   },
 
+  async getAllBookings() {
+    try {
+      const response = await api.get("/bookings/internal/bookings/all");
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching all bookings:", error);
+      throw error;
+    }
+  },
+
+  async getMasterScheduleData(date) {
+    try {
+      const allBookings = await this.getAllBookings();
+      const courts = await this.getCourts();
+
+      // Create a map of courtId to court details
+      const courtMap = {};
+      courts.forEach(court => {
+        courtMap[court.id] = {
+          name: court.name,
+          sport: court.sport || court.sportType,
+        };
+      });
+
+      // Filter bookings for the specified date and map them
+      const dateStr = date.toISOString().split('T')[0];
+      const mappedBookings = allBookings
+        .filter(booking => {
+          const bookingDate = booking.date instanceof Date 
+            ? booking.date.toISOString().split('T')[0]
+            : booking.date;
+          return bookingDate === dateStr && booking.status === "CONFIRMED";
+        })
+        .map(booking => {
+          const courtInfo = courtMap[booking.courtId] || { name: "Unknown Court", sport: "basketball" };
+          const startTime = toTimeString(booking.startTime);
+          
+          // Assume default 1 hour duration if not provided
+          const [h, m] = startTime.split(':').map(Number);
+          const endHour = h + 1;
+          const endTime = `${pad2(endHour)}:${pad2(m)}`;
+
+          return {
+            id: booking.id,
+            court: courtInfo.name,
+            startTime: startTime,
+            endTime: endTime,
+            user: "User " + booking.userId.substring(0, 8),
+            status: "confirmed",
+          };
+        });
+
+      return { bookings: mappedBookings, courts: Object.values(courtMap).map(c => c.name) };
+    } catch (error) {
+      console.error("Error fetching master schedule data:", error);
+      return { bookings: [], courts: [] };
+    }
+  },
+
   // Visual helpers
   getTimeSlots(dateStr) {
     const dateObj = new Date(dateStr);
