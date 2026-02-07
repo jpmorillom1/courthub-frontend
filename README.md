@@ -99,24 +99,18 @@ The project uses a robust and modern stack:
 Here you can see the application in action:
 
 ### ⚡ Booking Flow
-<!-- Insert your Booking Process GIF here -->
 <div align="center">
-  ![Grabación de pantalla 2026-02-06 234340](https://github.com/user-attachments/assets/44f385d3-43ec-4917-89bb-525cf7539e03)
-
+<img src="https://github.com/user-attachments/assets/44f385d3-43ec-4917-89bb-525cf7539e03" alt="Booking Process" width="800px" />
 </div>
 
 ### 🔒 Realtime Slots Blocking
-<!-- Insert your GIF showing instant slot blocking here -->
 <div align="center">
-  ![realtime](https://github.com/user-attachments/assets/62134279-08b3-4965-8ef3-bab26636e4c1)
-
+<img src="https://github.com/user-attachments/assets/62134279-08b3-4965-8ef3-bab26636e4c1" alt="Realtime Blocking" width="800px" />
 </div>
 
 ### 🖥️ Admin Dashboard
-<!-- Insert your Dashboard GIF here -->
 <div align="center">
-  ![dashboard](https://github.com/user-attachments/assets/f200f2e8-fc4c-40a9-bf85-5960f5c4ad2f)
-
+<img src="https://github.com/user-attachments/assets/f200f2e8-fc4c-40a9-bf85-5960f5c4ad2f" alt="Admin Dashboard" width="800px" />
 </div>
 
 ---
