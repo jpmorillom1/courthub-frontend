@@ -101,19 +101,22 @@ Here you can see the application in action:
 ### ⚡ Booking Flow
 <!-- Insert your Booking Process GIF here -->
 <div align="center">
-  <img src="https://f005.backblazeb2.com/file/courthub/bookingflow.gif" alt="Booking Process Gif" width="800" />
+  ![Grabación de pantalla 2026-02-06 234340](https://github.com/user-attachments/assets/44f385d3-43ec-4917-89bb-525cf7539e03)
+
 </div>
 
 ### 🔒 Realtime Slots Blocking
 <!-- Insert your GIF showing instant slot blocking here -->
 <div align="center">
-  <img src="https://f005.backblazeb2.com/file/courthub/realtime.gif" alt="Realtime Blocking Gif" width="800" />
+  ![realtime](https://github.com/user-attachments/assets/62134279-08b3-4965-8ef3-bab26636e4c1)
+
 </div>
 
 ### 🖥️ Admin Dashboard
 <!-- Insert your Dashboard GIF here -->
 <div align="center">
-  <img src="https://f005.backblazeb2.com/file/courthub/dashboard.gif" alt="Admin Dashboard Gif" width="800" />
+  ![dashboard](https://github.com/user-attachments/assets/f200f2e8-fc4c-40a9-bf85-5960f5c4ad2f)
+
 </div>
 
 ---
